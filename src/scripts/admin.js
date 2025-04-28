@@ -154,6 +154,21 @@
         closeAuditModal();
       }
     });
+
+    // Add global keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Only process keyboard shortcuts if authenticated
+      if (!state.isAuthenticated) return;
+
+      // CTRL+SHIFT+E to toggle edit mode
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault(); // Prevent default browser behavior
+        toggleEditMode();
+
+        // Show toast notification
+        Toast.show(`Edit mode ${state.isEditMode ? 'enabled' : 'disabled'}`, 'info');
+      }
+    });
   }
 
   // Show login prompt
@@ -219,12 +234,23 @@
     adminIndicator.textContent = 'ADMIN MODE';
     leftControls.appendChild(adminIndicator);
 
-    // Edit mode toggle
+    // Edit mode toggle with keyboard shortcut hint
+    const editToggleContainer = document.createElement('div');
+    editToggleContainer.className = 'flex flex-col';
+
     const editToggle = document.createElement('button');
     editToggle.id = 'admin-toggle-edit';
     editToggle.className = 'px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 transition-colors';
     editToggle.textContent = 'Enable Edit Mode';
-    leftControls.appendChild(editToggle);
+    editToggleContainer.appendChild(editToggle);
+
+    // Add keyboard shortcut hint
+    const shortcutHint = document.createElement('div');
+    shortcutHint.className = 'text-xs text-gray-400 text-center mt-1';
+    shortcutHint.innerHTML = `<kbd class="px-1 py-0.5 bg-gray-700 border border-gray-600 rounded text-xs">Ctrl</kbd>+<kbd class="px-1 py-0.5 bg-gray-700 border border-gray-600 rounded text-xs">Shift</kbd>+<kbd class="px-1 py-0.5 bg-gray-700 border border-gray-600 rounded text-xs">E</kbd>`;
+    editToggleContainer.appendChild(shortcutHint);
+
+    leftControls.appendChild(editToggleContainer);
 
     // Last edit timestamp
     const lastEdit = document.createElement('div');
@@ -674,12 +700,31 @@
       });
     });
 
-    // Add keyboard event listener for Escape key to close editor
+    // Add keyboard event listeners
     editor.addEventListener('keydown', function(e) {
+      // Escape key to close editor
       if (e.key === 'Escape') {
         closeEditor();
       }
+
+      // CTRL+ENTER to save changes
+      if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        saveChanges(element);
+
+        // Show toast notification
+        Toast.show('Changes saved with keyboard shortcut (CTRL+ENTER)', 'success');
+      }
     });
+
+    // Add keyboard shortcut hint
+    const shortcutHint = document.createElement('div');
+    shortcutHint.className = 'text-xs text-gray-500 mt-2 flex items-center justify-end';
+    shortcutHint.innerHTML = `
+      <span class="mr-4">Press <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">Esc</kbd> to cancel</span>
+      <span>Press <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">Ctrl</kbd> + <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">Enter</kbd> to save</span>
+    `;
+    editor.querySelector('#admin-editor-buttons').insertAdjacentElement('beforebegin', shortcutHint);
   }
 
   // Close editor
