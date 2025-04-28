@@ -33,29 +33,35 @@
         showInjectionEditor();
       } else if (e.target.id === 'injections-save') {
         saveInjection();
-      } else if (e.target.id === 'injections-close-editor') {
+      } else if (e.target.id === 'injections-close-editor' || e.target.closest('#injections-close-editor')) {
         closeInjectionEditor();
-      } else if (e.target.id === 'injections-close-manager') {
+      } else if (e.target.id === 'injections-close-manager' || e.target.closest('#injections-close-manager')) {
         closeInjectionsManager();
-      } else if (e.target.classList.contains('injection-edit-btn')) {
-        const injectionId = e.target.dataset.id;
+      } else if (e.target.classList.contains('injection-edit-btn') || e.target.closest('.injection-edit-btn')) {
+        const button = e.target.classList.contains('injection-edit-btn') ? e.target : e.target.closest('.injection-edit-btn');
+        const injectionId = button.dataset.id;
         editInjection(injectionId);
-      } else if (e.target.classList.contains('injection-delete-btn')) {
-        const injectionId = e.target.dataset.id;
+      } else if (e.target.classList.contains('injection-delete-btn') || e.target.closest('.injection-delete-btn')) {
+        const button = e.target.classList.contains('injection-delete-btn') ? e.target : e.target.closest('.injection-delete-btn');
+        const injectionId = button.dataset.id;
         deleteInjection(injectionId);
-      } else if (e.target.classList.contains('injection-toggle-btn')) {
-        const injectionId = e.target.dataset.id;
+      } else if (e.target.classList.contains('injection-toggle-btn') || e.target.closest('.injection-toggle-btn')) {
+        const button = e.target.classList.contains('injection-toggle-btn') ? e.target : e.target.closest('.injection-toggle-btn');
+        const injectionId = button.dataset.id;
         toggleInjectionStatus(injectionId);
       }
     });
+
+    // Setup modal close handlers
+    setupModalCloseHandlers();
   }
 
   // Show injections manager
   function showInjectionsManager() {
     console.log('admin-injections.js showInjectionsManager Showing injections manager');
-    
+
     const modalContent = `
-      <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+      <div class="absolute inset-0 bg-black bg-opacity-50 modal-background"></div>
       <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] z-10 overflow-hidden flex flex-col">
         <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
           <h3 class="text-xl font-bold">Script & Style Injections Manager</h3>
@@ -80,10 +86,10 @@
         </div>
       </div>
     `;
-    
+
     // Create or show modal
     Modal.create('injections-manager-modal', modalContent);
-    
+
     // Load injections
     loadInjections();
   }
@@ -91,13 +97,13 @@
   // Load injections
   async function loadInjections() {
     console.log('admin-injections.js loadInjections Loading injections');
-    
+
     try {
       state.isLoading = true;
       updateInjectionsTable();
-      
+
       const result = await Api.request(CONFIG.injectionsEndpoint, 'GET', null, CONFIG.storageKey);
-      
+
       if (result.success) {
         state.injections = result.data;
       } else {
@@ -115,18 +121,18 @@
   // Update injections table
   function updateInjectionsTable() {
     console.log('admin-injections.js updateInjectionsTable Updating injections table');
-    
+
     const injectionsListEl = document.getElementById('injections-list');
-    
+
     if (!injectionsListEl) return;
-    
+
     if (state.isLoading) {
       injectionsListEl.innerHTML = `
         <div class="text-center py-12 text-gray-500">Loading injections...</div>
       `;
       return;
     }
-    
+
     if (state.injections.length === 0) {
       injectionsListEl.innerHTML = `
         <div class="text-center py-12 text-gray-500">
@@ -135,7 +141,7 @@
       `;
       return;
     }
-    
+
     const tableHtml = `
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
@@ -219,25 +225,25 @@
         </tbody>
       </table>
     `;
-    
+
     injectionsListEl.innerHTML = tableHtml;
   }
 
   // Show injection editor
   function showInjectionEditor(injection = null) {
     console.log('admin-injections.js showInjectionEditor Showing injection editor', {data: {injection}});
-    
+
     state.currentInjection = injection;
     state.isEditing = !!injection;
-    
+
     const editorTitle = state.isEditing ? 'Edit' : 'Add';
     const scriptPlaceholder = '// JavaScript code\nconsole.log("Hello from injected script!");';
     const stylePlaceholder = '/* CSS styles */\nbody { background-color: #f0f0f0; }';
-    const placeholderByType = state.currentInjection?.type === 'style' || document.getElementById('injection-type')?.value === 'style' ? 
+    const placeholderByType = state.currentInjection?.type === 'style' || document.getElementById('injection-type')?.value === 'style' ?
       stylePlaceholder : scriptPlaceholder;
-    
+
     const modalContent = `
-      <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+      <div class="absolute inset-0 bg-black bg-opacity-50 modal-background"></div>
       <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] z-10 overflow-hidden flex flex-col">
         <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
           <h3 class="text-xl font-bold">
@@ -254,7 +260,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label for="injection-name" class="block text-sm font-medium text-gray-700">Name</label>
-                <input type="text" id="injection-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" 
+                <input type="text" id="injection-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                   value="${state.isEditing ? injection.name : ''}" placeholder="Analytics Script" required>
               </div>
               <div>
@@ -265,7 +271,7 @@
                 </select>
               </div>
             </div>
-            
+
             <div>
               <label for="injection-location" class="block text-sm font-medium text-gray-700">Injection Location</label>
               <select id="injection-location" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
@@ -273,14 +279,14 @@
                 <option value="before-head-close" ${state.isEditing && injection.location === 'before-head-close' ? 'selected' : ''}>Before Head Close</option>
               </select>
             </div>
-            
+
             <div>
               <label for="injection-code" class="block text-sm font-medium text-gray-700">Code</label>
-              <textarea id="injection-code" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 font-mono h-64" 
-                placeholder="${placeholderByType}" 
+              <textarea id="injection-code" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 font-mono h-64"
+                placeholder="${placeholderByType}"
                 required>${state.isEditing ? injection.code : ''}</textarea>
             </div>
-            
+
             <div class="flex justify-end">
               <button type="button" id="injections-close-editor" class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2 hover:bg-gray-400 transition-colors">
                 Cancel
@@ -293,14 +299,14 @@
         </div>
       </div>
     `;
-    
+
     // Create or show modal
     Modal.create('injection-editor-modal', modalContent);
-    
+
     // Setup type change handler to update placeholder
     const typeEl = document.getElementById('injection-type');
     const codeEl = document.getElementById('injection-code');
-    
+
     if (typeEl && codeEl) {
       typeEl.addEventListener('change', function() {
         if (codeEl.value === '') { // Only update if empty
@@ -313,9 +319,9 @@
   // Close injection editor
   function closeInjectionEditor() {
     console.log('admin-injections.js closeInjectionEditor Closing injection editor');
-    
+
     Modal.close('injection-editor-modal');
-    
+
     state.currentInjection = null;
     state.isEditing = false;
   }
@@ -323,35 +329,53 @@
   // Close injections manager
   function closeInjectionsManager() {
     console.log('admin-injections.js closeInjectionsManager Closing injections manager');
-    
+
     Modal.close('injections-manager-modal');
     closeInjectionEditor();
+  }
+
+  // Handle modal close events (for clicking outside or X button)
+  function setupModalCloseHandlers() {
+    // Handle clicks on the modal background or close buttons
+    document.addEventListener('click', function(e) {
+      // Check if click is on the modal background (the semi-transparent overlay)
+      if (e.target.classList.contains('modal-background')) {
+        // If the injection editor is open, close it first
+        const editorModal = document.getElementById('injection-editor-modal');
+        if (editorModal && editorModal.style.display !== 'none') {
+          closeInjectionEditor();
+        } else {
+          // Otherwise close the manager modal
+          closeInjectionsManager();
+        }
+      }
+    });
   }
 
   // Save injection
   async function saveInjection() {
     console.log('admin-injections.js saveInjection Saving injection');
-    
+
     // Get form values
     const formResult = Form.getValues(['injection-name', 'injection-type', 'injection-location', 'injection-code']);
-    
+
     if (!formResult.isValid) {
       Toast.show('All fields are required', 'warning');
       return;
     }
-    
+
     const { values } = formResult;
     const adminName = Storage.get(CONFIG.adminNameKey) || 'unknown';
-    
+
     try {
       let endpoint = CONFIG.injectionsEndpoint;
       let method = 'POST';
-      
+
       if (state.isEditing) {
         endpoint = `${CONFIG.injectionsEndpoint}/${state.currentInjection.injectionId}`;
         method = 'PUT';
       }
-      
+
       const data = {
         name: values['injection-name'],
         type: values['injection-type'],
@@ -359,9 +383,9 @@
         location: values['injection-location'],
         adminName
       };
-      
+
       const result = await Api.request(endpoint, method, data, CONFIG.storageKey);
-      
+
       if (result.success) {
         Toast.show(`Injection ${state.isEditing ? 'updated' : 'created'} successfully`, 'success');
         closeInjectionEditor();
@@ -378,11 +402,29 @@
   // Edit injection
   function editInjection(injectionId) {
     console.log('admin-injections.js editInjection Editing injection', {data: {injectionId}});
-    
+
     const injection = state.injections.find(inj => inj.injectionId === injectionId);
-    
+
     if (injection) {
+      // Set the current injection in state
+      state.currentInjection = injection;
+      state.isEditing = true;
+
+      // Show the editor with the injection data
       showInjectionEditor(injection);
+
+      // Ensure form is populated correctly
+      setTimeout(() => {
+        const nameEl = document.getElementById('injection-name');
+        const typeEl = document.getElementById('injection-type');
+        const locationEl = document.getElementById('injection-location');
+        const codeEl = document.getElementById('injection-code');
+
+        if (nameEl) nameEl.value = injection.name || '';
+        if (typeEl) typeEl.value = injection.type || 'script';
+        if (locationEl) locationEl.value = injection.location || 'before-body-close';
+        if (codeEl) codeEl.value = injection.code || '';
+      }, 100);
     } else {
       Toast.show('Injection not found', 'error');
     }
@@ -391,14 +433,14 @@
   // Delete injection
   async function deleteInjection(injectionId) {
     console.log('admin-injections.js deleteInjection Deleting injection', {data: {injectionId}});
-    
+
     if (!confirm('Are you sure you want to delete this injection? This action cannot be undone.')) {
       return;
     }
-    
+
     try {
       const result = await Api.request(`${CONFIG.injectionsEndpoint}/${injectionId}`, 'DELETE', null, CONFIG.storageKey);
-      
+
       if (result.success) {
         Toast.show('Injection deleted successfully', 'success');
         loadInjections();
@@ -414,23 +456,23 @@
   // Toggle injection status
   async function toggleInjectionStatus(injectionId) {
     console.log('admin-injections.js toggleInjectionStatus Toggling injection status', {data: {injectionId}});
-    
+
     try {
       const injection = state.injections.find(inj => inj.injectionId === injectionId);
-      
+
       if (!injection) {
         Toast.show('Injection not found', 'error');
         return;
       }
-      
+
       const adminName = Storage.get(CONFIG.adminNameKey) || 'unknown';
       const data = {
         isActive: !injection.isActive,
         adminName
       };
-      
+
       const result = await Api.request(`${CONFIG.injectionsEndpoint}/${injectionId}`, 'PUT', data, CONFIG.storageKey);
-      
+
       if (result.success) {
         Toast.show(`Injection ${injection.isActive ? 'deactivated' : 'activated'} successfully`, 'success');
         loadInjections();

@@ -21,3 +21,27 @@ console.error = function(...args) {
 console.log = function(...args) {
     originalConsole.log(`[LOG]`, ...args);
 }
+
+module.exports = {
+    create(scope) {
+        let logger = {
+            ...console
+        }
+        logger.debug = function(...args) {
+            console.debug(`[${scope}]`, ...args);
+        }
+        logger.info = function(...args) {
+            console.info(`[${scope}]`, ...args);
+        }
+        logger.warn = function(...args) {
+            console.warn(`[${scope}]`, ...args);
+        }
+        logger.error = function(...args) {
+            console.error(`[${scope}]`, ...args);
+        }
+        logger.log = function(...args) {
+            console.log(`[${scope}]`, ...args);
+        }
+        return logger
+    }
+}

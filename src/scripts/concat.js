@@ -8,6 +8,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const console = require('../utils/logger').create(path.basename(__filename))
+
+
 
 /**
  * Read a file and return its contents
