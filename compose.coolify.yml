@@ -1,6 +1,8 @@
 services:
   web:
     image: javimosch/indep-bauges-web:1.0
+    volumes:
+      - ./:/app
     expose:
       - 3000
     environment:
