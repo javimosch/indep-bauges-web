@@ -11,50 +11,56 @@ const AuditSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  
+
   // The element ID that was changed
   elementId: {
     type: String,
     required: true
   },
-  
+
   // The type of element that was changed
   elementType: {
     type: String,
     required: true
   },
-  
+
   // The previous content
   previousContent: {
     type: String
   },
-  
+
   // The new content
   newContent: {
     type: String,
     required: true
   },
-  
+
   // The admin who made the change
   adminName: {
     type: String,
     default: 'unknown'
   },
-  
+
   // IP address of the client
   ipAddress: {
     type: String
   },
-  
+
   // User agent of the client
   userAgent: {
     type: String
   },
-  
+
   // Timestamp of the change
   timestamp: {
     type: Date,
     default: Date.now
+  },
+
+  // Attribute changes (for elements with attributes like links)
+  attributeChanges: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
   }
 });
 

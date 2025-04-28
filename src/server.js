@@ -314,12 +314,26 @@ async function updateElementInSections(elementId, newContent, adminName, req, at
       const element = document.querySelector(`[data-id="${elementId}"]`);
 
       if (element) {
-        // Get previous content and attributes for audit log
+        // Get previous content for audit log
         const previousContent = element.innerHTML;
-        const previousAttributes = {};
 
         // Get element type
         const elementType = element.tagName.toLowerCase();
+
+        // Initialize attribute tracking
+        const previousAttributes = {};
+        const newAttributes = {};
+
+        // For links, always track href and target attributes even if they're not being changed
+        if (elementType === 'a') {
+          // Save previous attributes
+          previousAttributes.href = element.getAttribute('href') || '';
+          previousAttributes.target = element.getAttribute('target') || '';
+
+          // Set new attributes (defaults to current values if not being changed)
+          newAttributes.href = attributes.href !== undefined ? attributes.href : previousAttributes.href;
+          newAttributes.target = attributes.target !== undefined ? attributes.target : previousAttributes.target;
+        }
 
         // Update element content
         element.innerHTML = newContent;
@@ -328,10 +342,6 @@ async function updateElementInSections(elementId, newContent, adminName, req, at
         if (Object.keys(attributes).length > 0) {
           // Handle specific element types
           if (elementType === 'a') {
-            // Save previous attributes for audit log
-            previousAttributes.href = element.getAttribute('href');
-            previousAttributes.target = element.getAttribute('target');
-
             // Update href attribute
             if (attributes.href !== undefined) {
               element.setAttribute('href', attributes.href);
@@ -375,8 +385,18 @@ async function updateElementInSections(elementId, newContent, adminName, req, at
               userAgent: req.headers['user-agent']
             };
 
-            // Add attribute changes to audit log if any
-            if (Object.keys(attributes).length > 0 && Object.keys(previousAttributes).length > 0) {
+            // Add attribute changes to audit log for links
+            if (elementType === 'a') {
+              // Always include attribute changes for links, even if they didn't change
+              auditData.attributeChanges = {
+                previous: previousAttributes,
+                new: {
+                  href: attributes.href !== undefined ? attributes.href : previousAttributes.href,
+                  target: attributes.target !== undefined ? attributes.target : previousAttributes.target
+                }
+              };
+            } else if (Object.keys(attributes).length > 0 && Object.keys(previousAttributes).length > 0) {
+              // For other element types, only include if attributes were provided
               auditData.attributeChanges = {
                 previous: previousAttributes,
                 new: attributes

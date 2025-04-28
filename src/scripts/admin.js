@@ -1166,6 +1166,37 @@
             <div class="text-green-600 text-xs">${newContent}</div>
           </div>
         `;
+
+        // Add attribute changes for links
+        if (log.elementType === 'a' && log.attributeChanges) {
+          const { previous, new: newAttrs } = log.attributeChanges;
+
+          // Check if href changed
+          if (previous.href !== newAttrs.href) {
+            contentDiff += `
+              <div class="mt-2 pt-2 border-t border-gray-200">
+                <div class="text-xs font-medium text-gray-700">Link URL:</div>
+                <div class="flex flex-col gap-1">
+                  <div class="text-red-600 line-through text-xs">${previous.href || '(none)'}</div>
+                  <div class="text-green-600 text-xs">${newAttrs.href || '(none)'}</div>
+                </div>
+              </div>
+            `;
+          }
+
+          // Check if target changed
+          if (previous.target !== newAttrs.target) {
+            contentDiff += `
+              <div class="mt-2 pt-2 border-t border-gray-200">
+                <div class="text-xs font-medium text-gray-700">Link Target:</div>
+                <div class="flex flex-col gap-1">
+                  <div class="text-red-600 line-through text-xs">${previous.target || '(same window)'}</div>
+                  <div class="text-green-600 text-xs">${newAttrs.target || '(same window)'}</div>
+                </div>
+              </div>
+            `;
+          }
+        }
       }
 
       // Build row HTML
