@@ -13,4 +13,23 @@ services:
       # Admin authentication - override these in production
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-123456}
       - JWT_SECRET=${JWT_SECRET:-indep-bauges-secret-key}
+      # MongoDB connection
+      - MONGODB_URI=mongodb://root:${MONGO_PASSWORD:-password}@mongo:27017/indep-bauges?authSource=admin
+    depends_on:
+      - mongo
     restart: unless-stopped
+
+  mongo:
+    image: mongo:7.0
+    container_name: indep-bauges-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-password}
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

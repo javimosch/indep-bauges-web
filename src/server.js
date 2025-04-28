@@ -1,6 +1,7 @@
 /**
  * Express server for serving the static website
  * Includes admin API for inline content editing
+ * Includes MongoDB integration for persisting changes
  */
 
 // Load environment variables from .env file
@@ -12,6 +13,11 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const { JSDOM } = require('jsdom');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+
+// MongoDB connection and models
+const connectDB = require('./db/mongoose');
+const { saveSectionToMongo, saveAuditLog, initializeMongo } = require('./db/sync');
 
 // Create Express app
 const app = express();
@@ -25,6 +31,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'indep-bauges-secret-key'; // Defau
 console.log(`Server starting in ${process.env.NODE_ENV || 'development'} mode`);
 console.log(`Admin authentication is ${ADMIN_PASSWORD ? 'configured' : 'not configured'}`);
 console.log(`JWT signing is ${JWT_SECRET ? 'configured' : 'not configured'}`);
+
+// Connect to MongoDB and initialize
+(async () => {
+  const connected = await connectDB();
+  if (connected) {
+    await initializeMongo();
+  }
+})();
 
 // Middleware for parsing JSON
 app.use(express.json());
@@ -100,14 +114,14 @@ app.post('/api/auth/verify', authenticateToken, (req, res) => {
 // API endpoint for saving content changes
 app.post('/api/save-content', authenticateToken, async (req, res) => {
   try {
-    const { elementId, content } = req.body;
+    const { elementId, content, adminName = 'unknown' } = req.body;
 
     if (!elementId || content === undefined) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
     // Find the element in section files
-    const result = await updateElementInSections(elementId, content);
+    const result = await updateElementInSections(elementId, content, adminName, req);
 
     if (result.success) {
       // Trigger rebuild
@@ -120,7 +134,11 @@ app.post('/api/save-content', authenticateToken, async (req, res) => {
         console.log(`Build output: ${stdout}`);
         if (stderr) console.error(`Build stderr: ${stderr}`);
 
-        res.json({ success: true, message: 'Content updated successfully' });
+        res.json({
+          success: true,
+          message: 'Content updated successfully',
+          mongoSync: result.mongoSync
+        });
       });
     } else {
       res.status(404).json({ success: false, message: result.message });
@@ -132,7 +150,7 @@ app.post('/api/save-content', authenticateToken, async (req, res) => {
 });
 
 // Function to update element in section files
-async function updateElementInSections(elementId, newContent) {
+async function updateElementInSections(elementId, newContent, adminName, req) {
   // Get all section files
   const sectionFiles = fs.readdirSync(sectionsPath)
     .filter(file => file.endsWith('.html'))
@@ -140,6 +158,7 @@ async function updateElementInSections(elementId, newContent) {
 
   for (const filePath of sectionFiles) {
     try {
+      const filename = path.basename(filePath);
       const content = fs.readFileSync(filePath, 'utf8');
       const dom = new JSDOM(content);
       const document = dom.window.document;
@@ -148,13 +167,49 @@ async function updateElementInSections(elementId, newContent) {
       const element = document.querySelector(`[data-id="${elementId}"]`);
 
       if (element) {
+        // Get previous content for audit log
+        const previousContent = element.innerHTML;
+
         // Update element content
         element.innerHTML = newContent;
 
-        // Save updated file
-        fs.writeFileSync(filePath, dom.serialize());
+        // Get updated content
+        const updatedContent = dom.serialize();
 
-        return { success: true, message: 'Element updated successfully' };
+        // Save updated file to filesystem
+        fs.writeFileSync(filePath, updatedContent);
+
+        // Save to MongoDB if connected
+        let mongoSync = false;
+        try {
+          if (mongoose.connection.readyState === 1) { // 1 = connected
+            // Save section to MongoDB
+            await saveSectionToMongo(filename, updatedContent, adminName);
+
+            // Create audit log
+            await saveAuditLog({
+              filename,
+              elementId,
+              elementType: element.tagName.toLowerCase(),
+              previousContent,
+              newContent,
+              adminName,
+              ipAddress: req.ip,
+              userAgent: req.headers['user-agent']
+            });
+
+            mongoSync = true;
+          }
+        } catch (mongoError) {
+          console.error('MongoDB sync error:', mongoError);
+          // Continue even if MongoDB sync fails
+        }
+
+        return {
+          success: true,
+          message: 'Element updated successfully',
+          mongoSync
+        };
       }
     } catch (error) {
       console.error(`Error processing file ${filePath}:`, error);

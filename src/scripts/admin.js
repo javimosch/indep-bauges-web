@@ -24,7 +24,8 @@
     isAuthenticated: false,
     isEditMode: false,
     lastEditTimestamp: null,
-    currentlyEditing: null
+    currentlyEditing: null,
+    adminName: localStorage.getItem('admin_name') || ''
   };
 
   // Initialize admin functionality
@@ -93,6 +94,8 @@
         logout();
       } else if (e.target.id === 'admin-open-new-tab') {
         window.open(window.location.href, '_blank');
+      } else if (e.target.id === 'admin-save-name') {
+        saveAdminName();
       }
     });
   }
@@ -178,9 +181,42 @@
       : 'No recent edits';
     leftControls.appendChild(lastEdit);
 
+    // Admin name input
+    const adminNameContainer = document.createElement('div');
+    adminNameContainer.className = 'flex items-center gap-2 ml-4';
+
+    const adminNameLabel = document.createElement('label');
+    adminNameLabel.htmlFor = 'admin-name-input';
+    adminNameLabel.className = 'text-sm text-gray-300';
+    adminNameLabel.textContent = 'Your name:';
+    adminNameContainer.appendChild(adminNameLabel);
+
+    const adminNameInput = document.createElement('input');
+    adminNameInput.id = 'admin-name-input';
+    adminNameInput.type = 'text';
+    adminNameInput.className = 'px-2 py-1 rounded text-sm bg-gray-700 border border-gray-600 text-white';
+    adminNameInput.placeholder = 'Enter your name';
+    adminNameInput.value = state.adminName;
+    adminNameContainer.appendChild(adminNameInput);
+
+    const adminNameSave = document.createElement('button');
+    adminNameSave.id = 'admin-save-name';
+    adminNameSave.className = 'px-2 py-1 rounded bg-gray-600 hover:bg-gray-700 transition-colors text-sm';
+    adminNameSave.textContent = 'Save';
+    adminNameContainer.appendChild(adminNameSave);
+
+    leftControls.appendChild(adminNameContainer);
+
     // Right side - additional actions
     const rightControls = document.createElement('div');
     rightControls.className = 'flex items-center gap-4';
+
+    // MongoDB sync status
+    const mongoStatus = document.createElement('div');
+    mongoStatus.id = 'admin-mongo-status';
+    mongoStatus.className = 'text-sm text-gray-300';
+    mongoStatus.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-gray-500 mr-1"></span> MongoDB';
+    rightControls.appendChild(mongoStatus);
 
     // Open in new tab
     const openNewTab = document.createElement('button');
@@ -205,6 +241,16 @@
 
     // Add padding to body to prevent content from being hidden behind admin bar
     document.body.style.paddingTop = adminBar.offsetHeight + 'px';
+  }
+
+  // Save admin name
+  function saveAdminName() {
+    const nameInput = document.getElementById('admin-name-input');
+    if (nameInput) {
+      state.adminName = nameInput.value.trim();
+      localStorage.setItem('admin_name', state.adminName);
+      alert(`Name saved: ${state.adminName}`);
+    }
   }
 
   // Toggle edit mode
@@ -434,7 +480,8 @@
         elementId,
         elementType,
         content,
-        path: window.location.pathname
+        path: window.location.pathname,
+        adminName: state.adminName || 'unknown'
       })
     })
     .then(response => {
@@ -451,8 +498,16 @@
         lastEditElement.textContent = `Last edit: ${state.lastEditTimestamp.toLocaleString()}`;
       }
 
+      // Update MongoDB status indicator
+      const mongoStatus = document.getElementById('admin-mongo-status');
+      if (mongoStatus && data.mongoSync) {
+        mongoStatus.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span> MongoDB Synced';
+      } else if (mongoStatus) {
+        mongoStatus.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span> MongoDB Not Synced';
+      }
+
       // Show success message
-      //alert('Content updated successfully!');
+      alert('Content updated successfully!');
 
       // Close editor
       closeEditor();

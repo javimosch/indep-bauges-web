@@ -55,8 +55,28 @@ The application uses the following environment variables:
 | `NODE_ENV` | Environment mode | `development` |
 | `ADMIN_PASSWORD` | Password for admin access | `123456` |
 | `JWT_SECRET` | Secret key for JWT token signing | `indep-bauges-secret-key` |
+| `MONGODB_URI` | MongoDB connection string | `mongodb://root:password@localhost:27017/indep-bauges?authSource=admin` |
 
 For production, make sure to set secure values for `ADMIN_PASSWORD` and `JWT_SECRET`.
+
+### MongoDB Integration
+
+The application includes MongoDB integration for persisting content changes:
+
+1. **Content Persistence**: All content changes made through the admin interface are saved to MongoDB, ensuring they survive container restarts.
+
+2. **Audit Logs**: Each content change is logged with details about who made the change, what was changed, and when.
+
+3. **Sync Commands**: Use the following commands to sync content between MongoDB and the filesystem:
+   ```
+   # Sync from MongoDB to filesystem
+   npm run sync-from-mongo
+
+   # Sync from filesystem to MongoDB
+   npm run sync-to-mongo
+   ```
+
+4. **Admin Identification**: When making changes, admins can enter their name in the admin bar, which is recorded with each change.
 
 ## Docker Deployment
 
