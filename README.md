@@ -22,22 +22,41 @@ A static website for the "Indépendants en Bauges" association, built with HTML,
    npm install
    ```
 
-2. Build the website:
+2. Set up environment variables:
+   ```
+   cp .env.example .env
+   ```
+   Edit the `.env` file to configure your environment variables.
+
+3. Build the website:
    ```
    npm run build
    ```
 
-3. Start the development server:
+4. Start the development server:
    ```
    npm run serve
    ```
 
-4. Or do both in one command:
+5. Or do both in one command:
    ```
    npm start
    ```
 
-5. Open your browser and navigate to http://localhost:3000
+6. Open your browser and navigate to http://localhost:3000
+
+### Environment Variables
+
+The application uses the following environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Port to run the server on | `3000` |
+| `NODE_ENV` | Environment mode | `development` |
+| `ADMIN_PASSWORD` | Password for admin access | `123456` |
+| `JWT_SECRET` | Secret key for JWT token signing | `indep-bauges-secret-key` |
+
+For production, make sure to set secure values for `ADMIN_PASSWORD` and `JWT_SECRET`.
 
 ## Docker Deployment
 

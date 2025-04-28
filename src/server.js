@@ -3,15 +3,28 @@
  * Includes admin API for inline content editing
  */
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 const { JSDOM } = require('jsdom');
+const jwt = require('jsonwebtoken');
 
 // Create Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Admin configuration
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123456'; // Default for development
+const JWT_SECRET = process.env.JWT_SECRET || 'indep-bauges-secret-key'; // Default for development
+
+// Log configuration (but not sensitive values)
+console.log(`Server starting in ${process.env.NODE_ENV || 'development'} mode`);
+console.log(`Admin authentication is ${ADMIN_PASSWORD ? 'configured' : 'not configured'}`);
+console.log(`JWT signing is ${JWT_SECRET ? 'configured' : 'not configured'}`);
 
 // Middleware for parsing JSON
 app.use(express.json());
@@ -37,8 +50,55 @@ if (!fs.existsSync(indexPath)) {
 // Serve static files from the dist directory
 app.use(express.static(distPath));
 
+// Authentication middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ success: false, message: 'Invalid or expired token' });
+    }
+
+    req.user = user;
+    next();
+  });
+};
+
+// Authentication endpoint
+app.post('/api/auth', (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password is required' });
+    }
+
+    if (password !== ADMIN_PASSWORD) {
+      return res.status(401).json({ success: false, message: 'Invalid password' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '24h' });
+
+    res.json({ success: true, token });
+  } catch (error) {
+    console.error('Authentication error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Token verification endpoint
+app.post('/api/auth/verify', authenticateToken, (req, res) => {
+  res.json({ success: true, message: 'Token is valid' });
+});
+
 // API endpoint for saving content changes
-app.post('/api/save-content', async (req, res) => {
+app.post('/api/save-content', authenticateToken, async (req, res) => {
   try {
     const { elementId, content } = req.body;
 

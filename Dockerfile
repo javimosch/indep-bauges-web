@@ -11,6 +11,9 @@ RUN npm install --production
 # Copy the rest of the application code
 COPY . .
 
+# Set up environment variables
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
+
 # Build the application
 RUN mkdir -p dist && npm run build
 

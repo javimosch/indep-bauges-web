@@ -10,4 +10,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      # Admin authentication - override these in production
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-123456}
+      - JWT_SECRET=${JWT_SECRET:-indep-bauges-secret-key}
     restart: unless-stopped

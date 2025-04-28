@@ -1,6 +1,6 @@
 /**
  * Admin Inline Editing Script
- * 
+ *
  * This script provides inline editing capabilities for administrators.
  * It includes:
  * - Password protection (123456)
@@ -12,8 +12,8 @@
 (function() {
   // Configuration
   const CONFIG = {
-    password: '123456',
     apiEndpoint: '/api/save-content',
+    authEndpoint: '/api/auth',
     editableSelectors: 'h1, h2, h3, h4, h5, h6, p, a, button',
     storageKey: 'admin_auth_token',
     authTokenExpiry: 24 * 60 * 60 * 1000, // 24 hours
@@ -36,13 +36,33 @@
   // Check if user is already authenticated
   function checkAuthentication() {
     const authData = localStorage.getItem(CONFIG.storageKey);
-    
+
     if (authData) {
       try {
         const { token, expiry } = JSON.parse(authData);
         if (expiry > Date.now()) {
-          state.isAuthenticated = true;
-          createAdminBar();
+          // Verify token with server
+          fetch(CONFIG.authEndpoint + '/verify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              state.isAuthenticated = true;
+              createAdminBar();
+            } else {
+              // Token invalid
+              localStorage.removeItem(CONFIG.storageKey);
+            }
+          })
+          .catch(error => {
+            console.error('Token verification error:', error);
+            localStorage.removeItem(CONFIG.storageKey);
+          });
         } else {
           // Token expired
           localStorage.removeItem(CONFIG.storageKey);
@@ -80,20 +100,42 @@
   // Show login prompt
   function showLoginPrompt() {
     const password = prompt('Enter admin password:');
-    
-    if (password === CONFIG.password) {
-      state.isAuthenticated = true;
-      
-      // Store authentication token
-      const expiry = Date.now() + CONFIG.authTokenExpiry;
-      localStorage.setItem(CONFIG.storageKey, JSON.stringify({
-        token: btoa(Date.now() + CONFIG.password), // Simple token
-        expiry
-      }));
-      
-      createAdminBar();
-    } else if (password !== null) {
-      alert('Incorrect password');
+
+    if (password !== null && password.trim() !== '') {
+      // Authenticate via API
+      fetch(CONFIG.authEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Authentication failed');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          state.isAuthenticated = true;
+
+          // Store authentication token
+          const expiry = Date.now() + CONFIG.authTokenExpiry;
+          localStorage.setItem(CONFIG.storageKey, JSON.stringify({
+            token: data.token,
+            expiry
+          }));
+
+          createAdminBar();
+        } else {
+          alert('Authentication failed: ' + (data.message || 'Invalid password'));
+        }
+      })
+      .catch(error => {
+        console.error('Authentication error:', error);
+        alert('Authentication error. Please try again.');
+      });
     }
   }
 
@@ -104,63 +146,63 @@
     if (existingBar) {
       existingBar.remove();
     }
-    
+
     // Create admin bar
     const adminBar = document.createElement('div');
     adminBar.id = 'admin-bar';
     adminBar.className = 'fixed top-0 left-0 right-0 bg-gray-800 text-white p-2 z-[9999] flex items-center justify-between';
-    
+
     // Left side - status and controls
     const leftControls = document.createElement('div');
     leftControls.className = 'flex items-center gap-4';
-    
+
     // Admin indicator
     const adminIndicator = document.createElement('div');
     adminIndicator.className = 'font-bold';
     adminIndicator.textContent = 'ADMIN MODE';
     leftControls.appendChild(adminIndicator);
-    
+
     // Edit mode toggle
     const editToggle = document.createElement('button');
     editToggle.id = 'admin-toggle-edit';
     editToggle.className = 'px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 transition-colors';
     editToggle.textContent = 'Enable Edit Mode';
     leftControls.appendChild(editToggle);
-    
+
     // Last edit timestamp
     const lastEdit = document.createElement('div');
     lastEdit.id = 'admin-last-edit';
     lastEdit.className = 'text-sm text-gray-300';
-    lastEdit.textContent = state.lastEditTimestamp 
-      ? `Last edit: ${new Date(state.lastEditTimestamp).toLocaleString()}` 
+    lastEdit.textContent = state.lastEditTimestamp
+      ? `Last edit: ${new Date(state.lastEditTimestamp).toLocaleString()}`
       : 'No recent edits';
     leftControls.appendChild(lastEdit);
-    
+
     // Right side - additional actions
     const rightControls = document.createElement('div');
     rightControls.className = 'flex items-center gap-4';
-    
+
     // Open in new tab
     const openNewTab = document.createElement('button');
     openNewTab.id = 'admin-open-new-tab';
     openNewTab.className = 'px-3 py-1 rounded bg-gray-600 hover:bg-gray-700 transition-colors';
     openNewTab.textContent = 'Open in New Tab';
     rightControls.appendChild(openNewTab);
-    
+
     // Logout button
     const logoutButton = document.createElement('button');
     logoutButton.id = 'admin-logout';
     logoutButton.className = 'px-3 py-1 rounded bg-red-600 hover:bg-red-700 transition-colors';
     logoutButton.textContent = 'Logout';
     rightControls.appendChild(logoutButton);
-    
+
     // Assemble admin bar
     adminBar.appendChild(leftControls);
     adminBar.appendChild(rightControls);
-    
+
     // Add admin bar to document
     document.body.prepend(adminBar);
-    
+
     // Add padding to body to prevent content from being hidden behind admin bar
     document.body.style.paddingTop = adminBar.offsetHeight + 'px';
   }
@@ -168,15 +210,15 @@
   // Toggle edit mode
   function toggleEditMode() {
     state.isEditMode = !state.isEditMode;
-    
+
     const editToggle = document.getElementById('admin-toggle-edit');
     if (editToggle) {
       editToggle.textContent = state.isEditMode ? 'Disable Edit Mode' : 'Enable Edit Mode';
-      editToggle.className = state.isEditMode 
-        ? 'px-3 py-1 rounded bg-yellow-600 hover:bg-yellow-700 transition-colors' 
+      editToggle.className = state.isEditMode
+        ? 'px-3 py-1 rounded bg-yellow-600 hover:bg-yellow-700 transition-colors'
         : 'px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 transition-colors';
     }
-    
+
     if (state.isEditMode) {
       enableEditableElements();
     } else {
@@ -187,14 +229,14 @@
   // Enable editable elements
   function enableEditableElements() {
     const elements = document.querySelectorAll(CONFIG.editableSelectors);
-    
+
     elements.forEach(element => {
       if (element.getAttribute('data-id')) {
         element.classList.add('admin-editable');
         element.addEventListener('click', handleEditableClick);
       }
     });
-    
+
     // Add editable style
     addEditableStyles();
   }
@@ -202,12 +244,12 @@
   // Disable editable elements
   function disableEditableElements() {
     const elements = document.querySelectorAll('.admin-editable');
-    
+
     elements.forEach(element => {
       element.classList.remove('admin-editable');
       element.removeEventListener('click', handleEditableClick);
     });
-    
+
     // Remove editable style
     const existingStyle = document.getElementById('admin-editable-style');
     if (existingStyle) {
@@ -219,7 +261,7 @@
   function addEditableStyles() {
     const existingStyle = document.getElementById('admin-editable-style');
     if (existingStyle) return;
-    
+
     const style = document.createElement('style');
     style.id = 'admin-editable-style';
     style.textContent = `
@@ -283,24 +325,24 @@
         gap: 10px;
       }
     `;
-    
+
     document.head.appendChild(style);
   }
 
   // Handle click on editable element
   function handleEditableClick(e) {
     if (!state.isEditMode) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
-    
+
     const element = e.currentTarget;
-    
+
     // Don't allow editing if already editing another element
     if (state.currentlyEditing && state.currentlyEditing !== element) {
       return;
     }
-    
+
     // Toggle editing state
     if (element.classList.contains('admin-editing')) {
       closeEditor();
@@ -314,11 +356,11 @@
     // Mark as currently editing
     state.currentlyEditing = element;
     element.classList.add('admin-editing');
-    
+
     // Create editor
     const editor = document.createElement('div');
     editor.id = 'admin-editor';
-    
+
     // Get content to edit
     let content = '';
     if (element.tagName.toLowerCase() === 'a' || element.tagName.toLowerCase() === 'button') {
@@ -326,7 +368,7 @@
     } else {
       content = element.innerHTML;
     }
-    
+
     // Create editor form
     editor.innerHTML = `
       <h3 class="text-lg font-bold mb-2">Edit Content</h3>
@@ -337,15 +379,15 @@
         <button id="admin-editor-save" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">Save Changes</button>
       </div>
     `;
-    
+
     // Add editor to document
     document.body.appendChild(editor);
-    
+
     // Focus textarea
     setTimeout(() => {
       document.getElementById('admin-editor-content').focus();
     }, 100);
-    
+
     // Add event listeners
     document.getElementById('admin-editor-cancel').addEventListener('click', closeEditor);
     document.getElementById('admin-editor-save').addEventListener('click', () => saveChanges(element));
@@ -357,7 +399,7 @@
       state.currentlyEditing.classList.remove('admin-editing');
       state.currentlyEditing = null;
     }
-    
+
     const editor = document.getElementById('admin-editor');
     if (editor) {
       editor.remove();
@@ -369,19 +411,24 @@
     const content = document.getElementById('admin-editor-content').value;
     const elementId = element.getAttribute('data-id');
     const elementType = element.tagName.toLowerCase();
-    
+
     // Update element content temporarily
     if (elementType === 'a' || elementType === 'button') {
       element.innerHTML = content;
     } else {
       element.innerHTML = content;
     }
-    
+
+    // Get auth token
+    const authData = JSON.parse(localStorage.getItem(CONFIG.storageKey) || '{}');
+    const token = authData.token || '';
+
     // Send to API
     fetch(CONFIG.apiEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         elementId,
@@ -403,10 +450,10 @@
       if (lastEditElement) {
         lastEditElement.textContent = `Last edit: ${state.lastEditTimestamp.toLocaleString()}`;
       }
-      
+
       // Show success message
       //alert('Content updated successfully!');
-      
+
       // Close editor
       closeEditor();
     })
@@ -421,17 +468,17 @@
     state.isAuthenticated = false;
     state.isEditMode = false;
     localStorage.removeItem(CONFIG.storageKey);
-    
+
     // Remove admin bar
     const adminBar = document.getElementById('admin-bar');
     if (adminBar) {
       adminBar.remove();
       document.body.style.paddingTop = '0';
     }
-    
+
     // Remove editable styles
     disableEditableElements();
-    
+
     // Remove editor if open
     closeEditor();
   }
