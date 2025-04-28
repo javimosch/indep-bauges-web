@@ -9,17 +9,17 @@
           </div>
           <span class="text-bauges-accent font-display font-bold text-xl">Indépendants en Bauges</span>
         </div>
-        
+
         <p class="mb-4 text-sm text-white/70">
           Un collectif de freelances et entrepreneurs indépendants basés dans le Massif des Bauges en Savoie.
         </p>
-        
+
         <p class="text-sm text-white/70">
           Association loi 1901<br>
           SIRET: XX XXX XXX XXXXX
         </p>
       </div>
-      
+
       <!-- Quick Links -->
       <div>
         <h3 class="text-lg font-bold mb-6 text-bauges-accent">Liens rapides</h3>
@@ -30,21 +30,12 @@
           <li><a href="#services" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
             <i class="fas fa-chevron-right text-xs"></i> Services
           </a></li>
-          <li><a href="#members" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
-            <i class="fas fa-chevron-right text-xs"></i> Membres
-          </a></li>
-          <li><a href="#events" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
-            <i class="fas fa-chevron-right text-xs"></i> Événements
-          </a></li>
-          <li><a href="#join" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
-            <i class="fas fa-chevron-right text-xs"></i> Nous rejoindre
-          </a></li>
           <li><a href="#contact" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
             <i class="fas fa-chevron-right text-xs"></i> Contact
           </a></li>
         </ul>
       </div>
-      
+
       <!-- Legals -->
       <div>
         <h3 class="text-lg font-bold mb-6 text-bauges-accent">Informations légales</h3>
@@ -63,7 +54,7 @@
           </a></li>
         </ul>
       </div>
-      
+
       <!-- Contact -->
       <div>
         <h3 class="text-lg font-bold mb-6 text-bauges-accent">Contact</h3>
@@ -83,7 +74,7 @@
             <span>06 XX XX XX XX</span>
           </li>
         </ul>
-        
+
         <div class="flex gap-4 mt-6">
           <a href="#" class="text-white/70 hover:text-bauges-accent transition-colors">
             <i class="fab fa-facebook-f"></i>
@@ -100,7 +91,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="border-t border-white/10 pt-6 text-center text-sm text-white/50">
       <p>&copy; 2025 Indépendants en Bauges. Tous droits réservés.</p>
       <p class="mt-2">Site réalisé avec ❤️ par les membres de l'association</p>
@@ -119,10 +110,10 @@
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
       e.preventDefault();
-      
+
       const targetId = this.getAttribute('href');
       const targetElement = document.querySelector(targetId);
-      
+
       if (targetElement) {
         window.scrollTo({
           top: targetElement.offsetTop - 80, // Adjust for header height
@@ -131,11 +122,11 @@
       }
     });
   });
-  
+
   // Show/hide back to top button based on scroll position
   window.addEventListener('scroll', function() {
     const backToTopButton = document.querySelector('a[href="#top"]');
-    
+
     if (window.scrollY > 300) {
       backToTopButton.classList.remove('hidden');
     } else {
