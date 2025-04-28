@@ -1,6 +1,6 @@
 services:
   web:
-    image: javimosch/indep-bauges-web:1.0
+    image: javimosch/indep-bauges-web:latest
     volumes:
       - ./:/app
     expose:
