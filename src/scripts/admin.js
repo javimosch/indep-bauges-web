@@ -19,7 +19,7 @@
     authEndpoint: '/api/auth',
     syncEndpoint: '/api/sync-from-mongo',
     auditEndpoint: '/api/audit-logs',
-    editableSelectors: 'h1, h2, h3, h4, h5, h6, p, a, button',
+    editableSelectors: 'h1, h2, h3, h4, h5, h6, p, a, button, span',
     storageKey: 'admin_auth_token',
     adminNameKey: 'admin_name',
     authTokenExpiry: 24 * 60 * 60 * 1000, // 24 hours
@@ -432,35 +432,87 @@
     editor.id = 'admin-editor';
 
     // Get content to edit
-    let content = '';
-    if (element.tagName.toLowerCase() === 'a' || element.tagName.toLowerCase() === 'button') {
-      content = element.innerHTML;
+    let content = element.innerHTML;
+
+    // Get element type
+    const elementType = element.tagName.toLowerCase();
+    const elementId = element.getAttribute('data-id');
+
+    // Create basic editor form
+    let editorHTML = `
+      <h3 class="text-lg font-bold mb-2">Edit Content</h3>
+      <p class="text-sm text-gray-500 mb-4">Element: ${elementType} (ID: ${elementId})</p>
+    `;
+
+    // Add specific fields based on element type
+    if (elementType === 'a') {
+      // For links, add href and target fields
+      const href = element.getAttribute('href') || '';
+      const target = element.getAttribute('target') || '';
+
+      editorHTML += `
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="admin-editor-href">Link URL (href)</label>
+          <input type="text" id="admin-editor-href" value="${href}" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="admin-editor-target">Link Target</label>
+          <select id="admin-editor-target" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            <option value="" ${target === '' ? 'selected' : ''}>Same Window (_self)</option>
+            <option value="_blank" ${target === '_blank' ? 'selected' : ''}>New Window (_blank)</option>
+            <option value="_parent" ${target === '_parent' ? 'selected' : ''}>Parent Frame (_parent)</option>
+            <option value="_top" ${target === '_top' ? 'selected' : ''}>Full Window (_top)</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="admin-editor-content">Link Text</label>
+          <textarea id="admin-editor-content" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 min-h-[100px]">${content}</textarea>
+        </div>
+      `;
     } else {
-      content = element.innerHTML;
+      // For other elements, just show content editor
+      editorHTML += `
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="admin-editor-content">Content</label>
+          <textarea id="admin-editor-content" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 min-h-[100px]">${content}</textarea>
+        </div>
+      `;
     }
 
-    // Create editor form
-    editor.innerHTML = `
-      <h3 class="text-lg font-bold mb-2">Edit Content</h3>
-      <p class="text-sm text-gray-500 mb-4">Element: ${element.tagName.toLowerCase()} (ID: ${element.getAttribute('data-id')})</p>
-      <textarea id="admin-editor-content">${content}</textarea>
-      <div id="admin-editor-buttons">
-        <button id="admin-editor-cancel" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Cancel</button>
-        <button id="admin-editor-save" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">Save Changes</button>
+    // Add buttons
+    editorHTML += `
+      <div id="admin-editor-buttons" class="flex justify-end gap-2">
+        <button type="button" id="admin-editor-cancel" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Cancel</button>
+        <button type="button" id="admin-editor-save" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">Save Changes</button>
       </div>
     `;
+
+    // Set editor HTML
+    editor.innerHTML = editorHTML;
 
     // Add editor to document
     document.body.appendChild(editor);
 
-    // Focus textarea
+    // Focus first input/textarea
     setTimeout(() => {
-      document.getElementById('admin-editor-content').focus();
+      const firstInput = editor.querySelector('input, textarea');
+      if (firstInput) {
+        firstInput.focus();
+      }
     }, 100);
 
     // Add event listeners
     document.getElementById('admin-editor-cancel').addEventListener('click', closeEditor);
     document.getElementById('admin-editor-save').addEventListener('click', () => saveChanges(element));
+
+    // Add keyboard event listener for Escape key to close editor
+    editor.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeEditor();
+      }
+    });
   }
 
   // Close editor
@@ -504,10 +556,42 @@
     const elementId = element.getAttribute('data-id');
     const elementType = element.tagName.toLowerCase();
 
-    // Update element content temporarily
-    if (elementType === 'a' || elementType === 'button') {
+    // Prepare data for API
+    const updateData = {
+      elementId,
+      elementType,
+      content,
+      path: window.location.pathname,
+      adminName: state.adminName,
+      attributes: {}
+    };
+
+    // Handle specific element types
+    if (elementType === 'a') {
+      // Get link attributes
+      const href = document.getElementById('admin-editor-href').value;
+      const target = document.getElementById('admin-editor-target').value;
+
+      // Update element attributes temporarily
+      element.setAttribute('href', href);
+
+      // Only set target if it has a value
+      if (target) {
+        element.setAttribute('target', target);
+      } else {
+        element.removeAttribute('target');
+      }
+
+      // Update element content
       element.innerHTML = content;
+
+      // Add attributes to update data
+      updateData.attributes = {
+        href,
+        target
+      };
     } else {
+      // Update element content for other elements
       element.innerHTML = content;
     }
 
@@ -522,13 +606,7 @@
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({
-        elementId,
-        elementType,
-        content,
-        path: window.location.pathname,
-        adminName: state.adminName
-      })
+      body: JSON.stringify(updateData)
     })
     .then(response => {
       if (!response.ok) {

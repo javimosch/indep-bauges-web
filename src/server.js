@@ -261,14 +261,14 @@ app.get('/api/audit-logs', authenticateToken, async (req, res) => {
 // API endpoint for saving content changes
 app.post('/api/save-content', authenticateToken, async (req, res) => {
   try {
-    const { elementId, content, adminName = 'unknown' } = req.body;
+    const { elementId, content, adminName = 'unknown', attributes = {} } = req.body;
 
     if (!elementId || content === undefined) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
     // Find the element in section files
-    const result = await updateElementInSections(elementId, content, adminName, req);
+    const result = await updateElementInSections(elementId, content, adminName, req, attributes);
 
     if (result.success) {
       // Trigger rebuild
@@ -297,7 +297,7 @@ app.post('/api/save-content', authenticateToken, async (req, res) => {
 });
 
 // Function to update element in section files
-async function updateElementInSections(elementId, newContent, adminName, req) {
+async function updateElementInSections(elementId, newContent, adminName, req, attributes = {}) {
   // Get all section files
   const sectionFiles = fs.readdirSync(sectionsPath)
     .filter(file => file.endsWith('.html'))
@@ -314,11 +314,41 @@ async function updateElementInSections(elementId, newContent, adminName, req) {
       const element = document.querySelector(`[data-id="${elementId}"]`);
 
       if (element) {
-        // Get previous content for audit log
+        // Get previous content and attributes for audit log
         const previousContent = element.innerHTML;
+        const previousAttributes = {};
+
+        // Get element type
+        const elementType = element.tagName.toLowerCase();
 
         // Update element content
         element.innerHTML = newContent;
+
+        // Update element attributes if provided
+        if (Object.keys(attributes).length > 0) {
+          // Handle specific element types
+          if (elementType === 'a') {
+            // Save previous attributes for audit log
+            previousAttributes.href = element.getAttribute('href');
+            previousAttributes.target = element.getAttribute('target');
+
+            // Update href attribute
+            if (attributes.href !== undefined) {
+              element.setAttribute('href', attributes.href);
+            }
+
+            // Update target attribute
+            if (attributes.target !== undefined) {
+              if (attributes.target) {
+                element.setAttribute('target', attributes.target);
+              } else {
+                element.removeAttribute('target');
+              }
+            }
+          }
+
+          // Handle other element types with attributes as needed
+        }
 
         // Get updated content
         const updatedContent = dom.serialize();
@@ -333,17 +363,27 @@ async function updateElementInSections(elementId, newContent, adminName, req) {
             // Save section to MongoDB
             await saveSectionToMongo(filename, updatedContent, adminName);
 
-            // Create audit log
-            await saveAuditLog({
+            // Create audit log with additional attribute information
+            const auditData = {
               filename,
               elementId,
-              elementType: element.tagName.toLowerCase(),
+              elementType,
               previousContent,
               newContent,
               adminName,
               ipAddress: req.ip,
               userAgent: req.headers['user-agent']
-            });
+            };
+
+            // Add attribute changes to audit log if any
+            if (Object.keys(attributes).length > 0 && Object.keys(previousAttributes).length > 0) {
+              auditData.attributeChanges = {
+                previous: previousAttributes,
+                new: attributes
+              };
+            }
+
+            await saveAuditLog(auditData);
 
             mongoSync = true;
           }
