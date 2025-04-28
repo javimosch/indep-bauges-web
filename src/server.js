@@ -64,6 +64,9 @@ if (!fs.existsSync(indexPath)) {
 // Serve static files from the dist directory
 app.use(express.static(distPath));
 
+//target /src/public folder
+app.use(express.static(path.join(process.cwd(),'src', 'public')));
+
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -427,7 +430,7 @@ async function updateElementInSections(elementId, newContent, adminName, req, at
 }
 
 // Serve index.html for all routes to support SPA-like navigation
-app.get('*', (req, res) => {
+app.get('/', (req, res) => {
   res.sendFile(indexPath);
 });
 
