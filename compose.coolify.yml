@@ -1,0 +1,9 @@
+services:
+  web:
+    image: javimosch/indep-bauges-web:1.0
+    expose:
+      - 3000
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
