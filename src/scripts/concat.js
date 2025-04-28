@@ -139,15 +139,19 @@ function compileHTML() {
     fs.writeFileSync(outputPath, indexContent);
     console.log(`Compilation successful! Output: ${outputPath}`);
 
-    // Copy admin.js to dist/scripts
-    const adminJsPath = path.join(scriptsDir, 'admin.js');
-    if (fs.existsSync(adminJsPath)) {
-      const adminJsContent = fs.readFileSync(adminJsPath, 'utf8');
-      const distAdminJsPath = path.join(distScriptsDir, 'admin.js');
-      fs.writeFileSync(distAdminJsPath, adminJsContent);
-      console.log(`Copied admin.js to ${distAdminJsPath}`);
-    } else {
-      console.warn(`Warning: admin.js not found at ${adminJsPath}`);
+    // Copy admin scripts to dist/scripts
+    const adminScripts = ['admin-helpers.js', 'admin.js'];
+
+    for (const scriptName of adminScripts) {
+      const scriptPath = path.join(scriptsDir, scriptName);
+      if (fs.existsSync(scriptPath)) {
+        const scriptContent = fs.readFileSync(scriptPath, 'utf8');
+        const distScriptPath = path.join(distScriptsDir, scriptName);
+        fs.writeFileSync(distScriptPath, scriptContent);
+        console.log(`Copied ${scriptName} to ${distScriptPath}`);
+      } else {
+        console.warn(`Warning: ${scriptName} not found at ${scriptPath}`);
+      }
     }
   } catch (error) {
     console.error(`Error in compilation process:`, error.message);

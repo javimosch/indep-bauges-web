@@ -3,10 +3,13 @@
  *
  * This script provides inline editing capabilities for administrators.
  * It includes:
- * - Password protection (123456)
+ * - Password protection via JWT authentication
  * - Inline editing of content elements (h1-h6, p, a, button)
  * - API endpoint handling for saving changes
  * - Admin navigation bar
+ * - MongoDB integration for persisting changes
+ *
+ * Requires: admin-helpers.js
  */
 
 (function() {
@@ -16,9 +19,13 @@
     authEndpoint: '/api/auth',
     editableSelectors: 'h1, h2, h3, h4, h5, h6, p, a, button',
     storageKey: 'admin_auth_token',
-    authTokenExpiry: 24 * 60 * 60 * 1000, // 24 hours,
+    adminNameKey: 'admin_name',
+    authTokenExpiry: 24 * 60 * 60 * 1000, // 24 hours
     toastDuration: 3000, // Toast notification duration in ms
   };
+
+  // Helper modules
+  const { Toast, EditorStyles, Storage } = window.AdminHelpers || {};
 
   // State
   let state = {
@@ -26,170 +33,52 @@
     isEditMode: false,
     lastEditTimestamp: null,
     currentlyEditing: null,
-    adminName: localStorage.getItem('admin_name') || ''
+    adminName: Storage.get(CONFIG.adminNameKey) || ''
   };
 
   // Initialize admin functionality
   function init() {
-    checkAuthentication();
-    setupEventListeners();
-    setupToastContainer();
-  }
-
-  // Create toast container
-  function setupToastContainer() {
-    // Remove existing toast container if present
-    const existingContainer = document.getElementById('admin-toast-container');
-    if (existingContainer) {
-      existingContainer.remove();
+    // Check if helper modules are available
+    if (!Toast || !EditorStyles || !Storage) {
+      console.error('Admin helpers not loaded. Make sure admin-helpers.js is included before admin.js');
+      return;
     }
 
-    // Create toast container
-    const toastContainer = document.createElement('div');
-    toastContainer.id = 'admin-toast-container';
-    toastContainer.className = 'fixed bottom-4 right-4 z-[9999] flex flex-col gap-2';
-    document.body.appendChild(toastContainer);
+    // Initialize toast system
+    Toast.setup();
 
-    // Add toast styles
-    const toastStyles = document.createElement('style');
-    toastStyles.id = 'admin-toast-styles';
-    toastStyles.textContent = `
-      .admin-toast {
-        padding: 12px 16px;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        color: white;
-        font-size: 14px;
-        max-width: 300px;
-        margin-top: 8px;
-        transform: translateY(20px);
-        opacity: 0;
-        transition: transform 0.3s ease, opacity 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .admin-toast.show {
-        transform: translateY(0);
-        opacity: 1;
-      }
-      .admin-toast-success {
-        background-color: #10B981;
-      }
-      .admin-toast-error {
-        background-color: #EF4444;
-      }
-      .admin-toast-info {
-        background-color: #3B82F6;
-      }
-      .admin-toast-close {
-        background: none;
-        border: none;
-        color: white;
-        cursor: pointer;
-        font-size: 16px;
-        margin-left: 8px;
-        opacity: 0.7;
-      }
-      .admin-toast-close:hover {
-        opacity: 1;
-      }
-    `;
-    document.head.appendChild(toastStyles);
-  }
-
-  // Show toast notification
-  function showToast(message, type = 'info') {
-    const toastContainer = document.getElementById('admin-toast-container');
-    if (!toastContainer) return;
-
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.className = `admin-toast admin-toast-${type}`;
-
-    // Create message element
-    const messageEl = document.createElement('span');
-    messageEl.textContent = message;
-    toast.appendChild(messageEl);
-
-    // Create close button
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'admin-toast-close';
-    closeBtn.innerHTML = '&times;';
-    closeBtn.addEventListener('click', () => {
-      removeToast(toast);
-    });
-    toast.appendChild(closeBtn);
-
-    // Add toast to container
-    toastContainer.appendChild(toast);
-
-    // Trigger animation
-    setTimeout(() => {
-      toast.classList.add('show');
-    }, 10);
-
-    // Auto-remove after duration
-    setTimeout(() => {
-      removeToast(toast);
-    }, CONFIG.toastDuration);
-
-    return toast;
-  }
-
-  // Remove toast
-  function removeToast(toast) {
-    if (!toast) return;
-
-    // Trigger hide animation
-    toast.classList.remove('show');
-
-    // Remove after animation completes
-    setTimeout(() => {
-      if (toast.parentNode) {
-        toast.parentNode.removeChild(toast);
-      }
-    }, 300);
+    // Check authentication and set up event listeners
+    checkAuthentication();
+    setupEventListeners();
   }
 
   // Check if user is already authenticated
   function checkAuthentication() {
-    const authData = localStorage.getItem(CONFIG.storageKey);
+    const authData = Storage.get(CONFIG.storageKey);
 
-    if (authData) {
-      try {
-        const { token, expiry } = JSON.parse(authData);
-        if (expiry > Date.now()) {
-          // Verify token with server
-          fetch(CONFIG.authEndpoint + '/verify', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              state.isAuthenticated = true;
-              createAdminBar();
-            } else {
-              // Token invalid
-              localStorage.removeItem(CONFIG.storageKey);
-            }
-          })
-          .catch(error => {
-            console.error('Token verification error:', error);
-            localStorage.removeItem(CONFIG.storageKey);
-          });
-        } else {
-          // Token expired
-          localStorage.removeItem(CONFIG.storageKey);
+    if (authData && authData.token) {
+      // Verify token with server
+      fetch(CONFIG.authEndpoint + '/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authData.token}`
         }
-      } catch (e) {
-        console.error('Error parsing auth data:', e);
-        localStorage.removeItem(CONFIG.storageKey);
-      }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          state.isAuthenticated = true;
+          createAdminBar();
+        } else {
+          // Token invalid
+          Storage.remove(CONFIG.storageKey);
+        }
+      })
+      .catch(error => {
+        console.error('Token verification error:', error);
+        Storage.remove(CONFIG.storageKey);
+      });
     }
   }
 
@@ -242,20 +131,18 @@
           state.isAuthenticated = true;
 
           // Store authentication token
-          const expiry = Date.now() + CONFIG.authTokenExpiry;
-          localStorage.setItem(CONFIG.storageKey, JSON.stringify({
-            token: data.token,
-            expiry
-          }));
+          Storage.save(CONFIG.storageKey, {
+            token: data.token
+          }, CONFIG.authTokenExpiry);
 
           createAdminBar();
         } else {
-          showToast('Authentication failed: ' + (data.message || 'Invalid password'), 'error');
+          Toast.show('Authentication failed: ' + (data.message || 'Invalid password'), 'error');
         }
       })
       .catch(error => {
         console.error('Authentication error:', error);
-        showToast('Authentication error. Please try again.', 'error');
+        Toast.show('Authentication error. Please try again.', 'error');
       });
     }
   }
@@ -366,8 +253,8 @@
     const nameInput = document.getElementById('admin-name-input');
     if (nameInput) {
       state.adminName = nameInput.value.trim();
-      localStorage.setItem('admin_name', state.adminName);
-      showToast(`Name saved: ${state.adminName}`, 'success');
+      Storage.save(CONFIG.adminNameKey, state.adminName);
+      Toast.show(`Name saved: ${state.adminName}`, 'success');
     }
   }
 
@@ -402,7 +289,7 @@
     });
 
     // Add editable style
-    addEditableStyles();
+    EditorStyles.add();
   }
 
   // Disable editable elements
@@ -415,83 +302,10 @@
     });
 
     // Remove editable style
-    const existingStyle = document.getElementById('admin-editable-style');
-    if (existingStyle) {
-      existingStyle.remove();
-    }
+    EditorStyles.remove();
   }
 
-  // Add styles for editable elements
-  function addEditableStyles() {
-    const existingStyle = document.getElementById('admin-editable-style');
-    if (existingStyle) return;
 
-    const style = document.createElement('style');
-    style.id = 'admin-editable-style';
-    style.textContent = `
-      .admin-editable {
-        position: relative;
-        outline: 2px dashed #3B82F6;
-        cursor: pointer;
-        transition: outline-color 0.3s;
-      }
-      .admin-editable:hover {
-        outline-color: #2563EB;
-      }
-      .admin-editable::before {
-        content: "✏️";
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        background: #3B82F6;
-        color: white;
-        padding: 2px 5px;
-        border-radius: 3px;
-        font-size: 10px;
-        opacity: 0;
-        transition: opacity 0.3s;
-      }
-      .admin-editable:hover::before {
-        opacity: 1;
-      }
-      .admin-editing {
-        outline: 2px solid #10B981;
-      }
-      .admin-editing::before {
-        content: "Editing";
-        background: #10B981;
-        opacity: 1;
-      }
-      #admin-editor {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 80%;
-        max-width: 800px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        z-index: 9999;
-        padding: 20px;
-      }
-      #admin-editor textarea {
-        width: 100%;
-        min-height: 100px;
-        margin-bottom: 10px;
-        padding: 10px;
-        border: 1px solid #e2e8f0;
-        border-radius: 4px;
-      }
-      #admin-editor-buttons {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-      }
-    `;
-
-    document.head.appendChild(style);
-  }
 
   // Handle click on editable element
   function handleEditableClick(e) {
@@ -584,7 +398,7 @@
     }
 
     // Get auth token
-    const authData = JSON.parse(localStorage.getItem(CONFIG.storageKey) || '{}');
+    const authData = Storage.get(CONFIG.storageKey) || {};
     const token = authData.token || '';
 
     // Send to API
@@ -625,14 +439,14 @@
       }
 
       // Show success message
-      showToast('Content updated successfully!', 'success');
+      Toast.show('Content updated successfully!', 'success');
 
       // Close editor
       closeEditor();
     })
     .catch(error => {
       console.error('Error saving changes:', error);
-      showToast('Error saving changes. Please try again.', 'error');
+      Toast.show('Error saving changes. Please try again.', 'error');
     });
   }
 
@@ -640,7 +454,7 @@
   function logout() {
     state.isAuthenticated = false;
     state.isEditMode = false;
-    localStorage.removeItem(CONFIG.storageKey);
+    Storage.remove(CONFIG.storageKey);
 
     // Remove admin bar
     const adminBar = document.getElementById('admin-bar');
