@@ -421,6 +421,54 @@
     }
   }
 
+  // Find related elements (parent, children, siblings with data-id)
+  function findRelatedElements(element) {
+    const related = {
+      parents: [],
+      children: [],
+      siblings: []
+    };
+
+    // Find parent elements with data-id
+    let parent = element.parentElement;
+    while (parent) {
+      if (parent.hasAttribute('data-id')) {
+        related.parents.push({
+          element: parent,
+          type: parent.tagName.toLowerCase(),
+          id: parent.getAttribute('data-id')
+        });
+      }
+      parent = parent.parentElement;
+    }
+
+    // Find child elements with data-id
+    const children = element.querySelectorAll('[data-id]');
+    children.forEach(child => {
+      related.children.push({
+        element: child,
+        type: child.tagName.toLowerCase(),
+        id: child.getAttribute('data-id')
+      });
+    });
+
+    // Find sibling elements with data-id
+    if (element.parentElement) {
+      const siblings = element.parentElement.querySelectorAll('[data-id]');
+      siblings.forEach(sibling => {
+        if (sibling !== element && sibling.parentElement === element.parentElement) {
+          related.siblings.push({
+            element: sibling,
+            type: sibling.tagName.toLowerCase(),
+            id: sibling.getAttribute('data-id')
+          });
+        }
+      });
+    }
+
+    return related;
+  }
+
   // Open editor for element
   function openEditor(element) {
     // Mark as currently editing
@@ -437,6 +485,9 @@
     // Get element type
     const elementType = element.tagName.toLowerCase();
     const elementId = element.getAttribute('data-id');
+
+    // Find related elements
+    const relatedElements = findRelatedElements(element);
 
     // Create basic editor form
     let editorHTML = `
@@ -481,6 +532,99 @@
       `;
     }
 
+    // Add related elements section if there are any
+    const hasParents = relatedElements.parents.length > 0;
+    const hasChildren = relatedElements.children.length > 0;
+    const hasSiblings = relatedElements.siblings.length > 0;
+
+    if (hasParents || hasChildren || hasSiblings) {
+      editorHTML += `
+        <div class="mb-6 border rounded-md overflow-hidden">
+          <div class="bg-gray-100 px-4 py-2 border-b">
+            <h4 class="font-medium text-gray-700">Related Elements</h4>
+            <p class="text-xs text-gray-500">Click on an element to switch to editing it</p>
+          </div>
+          <div class="p-4">
+      `;
+
+      // Add parent elements
+      if (hasParents) {
+        editorHTML += `
+          <div class="mb-3">
+            <h5 class="text-sm font-medium text-gray-700 mb-1">Parent Elements:</h5>
+            <div class="flex flex-wrap gap-2">
+        `;
+
+        relatedElements.parents.forEach(parent => {
+          editorHTML += `
+            <button type="button"
+              class="related-element-btn px-2 py-1 text-xs rounded bg-blue-100 hover:bg-blue-200 text-blue-800 flex items-center gap-1 border border-blue-200"
+              data-element-id="${parent.id}">
+              <span class="font-mono">&lt;${parent.type}&gt;</span> ${parent.id}
+            </button>
+          `;
+        });
+
+        editorHTML += `
+            </div>
+          </div>
+        `;
+      }
+
+      // Add child elements
+      if (hasChildren) {
+        editorHTML += `
+          <div class="mb-3">
+            <h5 class="text-sm font-medium text-gray-700 mb-1">Child Elements:</h5>
+            <div class="flex flex-wrap gap-2">
+        `;
+
+        relatedElements.children.forEach(child => {
+          editorHTML += `
+            <button type="button"
+              class="related-element-btn px-2 py-1 text-xs rounded bg-green-100 hover:bg-green-200 text-green-800 flex items-center gap-1 border border-green-200"
+              data-element-id="${child.id}">
+              <span class="font-mono">&lt;${child.type}&gt;</span> ${child.id}
+            </button>
+          `;
+        });
+
+        editorHTML += `
+            </div>
+          </div>
+        `;
+      }
+
+      // Add sibling elements
+      if (hasSiblings) {
+        editorHTML += `
+          <div>
+            <h5 class="text-sm font-medium text-gray-700 mb-1">Sibling Elements:</h5>
+            <div class="flex flex-wrap gap-2">
+        `;
+
+        relatedElements.siblings.forEach(sibling => {
+          editorHTML += `
+            <button type="button"
+              class="related-element-btn px-2 py-1 text-xs rounded bg-purple-100 hover:bg-purple-200 text-purple-800 flex items-center gap-1 border border-purple-200"
+              data-element-id="${sibling.id}">
+              <span class="font-mono">&lt;${sibling.type}&gt;</span> ${sibling.id}
+            </button>
+          `;
+        });
+
+        editorHTML += `
+            </div>
+          </div>
+        `;
+      }
+
+      editorHTML += `
+          </div>
+        </div>
+      `;
+    }
+
     // Add buttons
     editorHTML += `
       <div id="admin-editor-buttons" class="flex justify-end gap-2">
@@ -506,6 +650,29 @@
     // Add event listeners
     document.getElementById('admin-editor-cancel').addEventListener('click', closeEditor);
     document.getElementById('admin-editor-save').addEventListener('click', () => saveChanges(element));
+
+    // Add event listeners for related element buttons
+    const relatedButtons = editor.querySelectorAll('.related-element-btn');
+    relatedButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const targetElementId = this.getAttribute('data-element-id');
+        if (targetElementId) {
+          // Find the target element in the DOM
+          const targetElement = document.querySelector(`[data-id="${targetElementId}"]`);
+          if (targetElement) {
+            // Close current editor and open new one for target element
+            closeEditor();
+
+            // Highlight the transition with a flash effect
+            targetElement.classList.add('admin-element-flash');
+            setTimeout(() => {
+              targetElement.classList.remove('admin-element-flash');
+              openEditor(targetElement);
+            }, 300);
+          }
+        }
+      });
+    });
 
     // Add keyboard event listener for Escape key to close editor
     editor.addEventListener('keydown', function(e) {
