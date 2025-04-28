@@ -4,6 +4,7 @@
 
 // Load environment variables from .env file
 require('dotenv').config();
+require('../utils/logger')
 
 module.exports = {
   // Server configuration
