@@ -10,14 +10,17 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 const { exec } = require('child_process');
 const { JSDOM } = require('jsdom');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 
+
 // MongoDB connection and models
 const connectDB = require('./db/mongoose');
 const { saveSectionToMongo, saveAuditLog, syncFromMongo, initializeMongo } = require('./db/sync');
+const { createInjection, updateInjection, deleteInjection, getInjections, getInjectionById, getActiveInjectionsByLocation } = require('./db/injection');
 
 // Create Express app
 const app = express();
@@ -61,8 +64,6 @@ if (!fs.existsSync(indexPath)) {
   process.exit(1);
 }
 
-// Serve static files from the dist directory
-app.use(express.static(distPath));
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -426,10 +427,285 @@ async function updateElementInSections(elementId, newContent, adminName, req, at
   return { success: false, message: 'Element not found in any section file' };
 }
 
-// Serve index.html for all routes to support SPA-like navigation
-app.get('*', (req, res) => {
-  res.sendFile(indexPath);
+// API endpoint for managing injections - Get all
+app.get('/api/injections', authenticateToken, async (req, res) => {
+  try {
+    // Extract query parameters for filtering
+    const { type, location, origin, isActive } = req.query;
+
+    // Prepare filters object
+    const filters = {};
+    if (type) filters.type = type;
+    if (location) filters.location = location;
+    if (origin) filters.origin = origin;
+    if (isActive !== undefined) filters.isActive = isActive === 'true';
+
+    const injections = await getInjections(filters);
+
+    res.json({
+      success: true,
+      data: injections
+    });
+  } catch (error) {
+    console.error('Error fetching injections:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching injections: ' + error.message
+    });
+  }
 });
+
+// API endpoint for managing injections - Get by ID
+app.get('/api/injections/:id', authenticateToken, async (req, res) => {
+  try {
+    const injectionId = req.params.id;
+
+    try {
+      const injection = await getInjectionById(injectionId);
+      res.json({
+        success: true,
+        data: injection
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching injection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error: ' + error.message
+    });
+  }
+});
+
+// API endpoint for managing injections - Create
+app.post('/api/injections', authenticateToken, async (req, res) => {
+  try {
+    const { name, type, code, location, origin, isActive } = req.body;
+    const adminName = req.body.adminName || 'unknown';
+
+    if (!name || !type || !code || !location) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: name, type, code, and location are required'
+      });
+    }
+
+    // Generate a unique ID
+    const injectionId = `injection-${uuidv4()}`;
+
+    const injectionData = {
+      injectionId,
+      name,
+      type,
+      code,
+      location,
+      origin: origin || 'user',
+      isActive: isActive !== undefined ? isActive : true
+    };
+
+    const injection = await createInjection(injectionData, adminName);
+
+    res.status(201).json({
+      success: true,
+      message: 'Injection created successfully',
+      data: injection
+    });
+  } catch (error) {
+    console.error('Error creating injection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating injection: ' + error.message
+    });
+  }
+});
+
+// API endpoint for managing injections - Update
+app.put('/api/injections/:id', authenticateToken, async (req, res) => {
+  try {
+    const injectionId = req.params.id;
+    const { name, type, code, location, isActive } = req.body;
+    const adminName = req.body.adminName || 'unknown';
+
+    // Create update object with only provided fields
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (type !== undefined) updateData.type = type;
+    if (code !== undefined) updateData.code = code;
+    if (location !== undefined) updateData.location = location;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    try {
+      const updatedInjection = await updateInjection(injectionId, updateData, adminName);
+
+      res.json({
+        success: true,
+        message: 'Injection updated successfully',
+        data: updatedInjection
+      });
+    } catch (error) {
+      if (error.message.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      } else if (error.message.includes('system injections')) {
+        return res.status(403).json({
+          success: false,
+          message: error.message
+        });
+      } else {
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error('Error updating injection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating injection: ' + error.message
+    });
+  }
+});
+
+// API endpoint for managing injections - Delete
+app.delete('/api/injections/:id', authenticateToken, async (req, res) => {
+  try {
+    const injectionId = req.params.id;
+
+    try {
+      await deleteInjection(injectionId);
+
+      res.json({
+        success: true,
+        message: 'Injection deleted successfully'
+      });
+    } catch (error) {
+      if (error.message.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      } else if (error.message.includes('system injections')) {
+        return res.status(403).json({
+          success: false,
+          message: error.message
+        });
+      } else {
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error('Error deleting injection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting injection: ' + error.message
+    });
+  }
+});
+
+// Inject scripts and styles into index.html
+app.use(async (req, res, next) => {
+
+  console.log('injection.js app.use Intercepting requests', {
+    path: req.path
+  });
+
+  // Only intercept HTML requests for the main route
+  if (req.path === '/' || req.path.endsWith('.html')) {
+
+    console.log('injection.js app.use Intercepting HTML requests');
+
+
+
+    let body = fs.readFileSync(indexPath, 'utf8');
+
+    console.log('injection.js app.use Checking if response is HTML');
+
+    // Only process string responses that look like HTML
+    if (typeof body === 'string' && body.includes('<!DOCTYPE html>')) {
+
+      console.debug('injection.js app.use Injecting scripts/styles into HTML');
+
+      try {
+        // Parse the HTML
+        const dom = new JSDOM(body);
+        const document = dom.window.document;
+
+        // Inject head scripts/styles
+        const headInjections = await getActiveInjectionsByLocation('before-head-close');
+        const headElement = document.querySelector('head');
+
+        if (headElement && headInjections.length > 0) {
+          for (const injection of headInjections) {
+            // Create an ID for the injection to avoid duplicates
+            const elementId = `injection-${injection.injectionId}`;
+
+            // Check if this injection is already present
+            if (!document.getElementById(elementId)) {
+              if (injection.type === 'script') {
+                const script = document.createElement('script');
+                script.id = elementId;
+                script.textContent = injection.code;
+                headElement.appendChild(script);
+              } else if (injection.type === 'style') {
+                const style = document.createElement('style');
+                style.id = elementId;
+                style.textContent = injection.code;
+                headElement.appendChild(style);
+              }
+            }
+            console.debug('injection.js getActiveInjectionsByLocation Injected head injection', { data: injection });
+          }
+        }
+
+        // Inject body scripts/styles
+        const bodyInjections = await getActiveInjectionsByLocation('before-body-close');
+        const bodyElement = document.querySelector('body');
+
+        if (bodyElement && bodyInjections.length > 0) {
+          for (const injection of bodyInjections) {
+            // Create an ID for the injection to avoid duplicates
+            const elementId = `injection-${injection.injectionId}`;
+
+            // Check if this injection is already present
+            if (!document.getElementById(elementId)) {
+              if (injection.type === 'script') {
+                const script = document.createElement('script');
+                script.id = elementId;
+                script.textContent = injection.code;
+                bodyElement.appendChild(script);
+              } else if (injection.type === 'style') {
+                const style = document.createElement('style');
+                style.id = elementId;
+                style.textContent = injection.code;
+                bodyElement.appendChild(style);
+              }
+            }
+          }
+        }
+
+        // Serialize the modified HTML
+        body = dom.serialize();
+      } catch (error) {
+        console.error('Error injecting scripts/styles:', error);
+        // Continue with the original HTML if there was an error
+      }
+    }
+
+    res.send(body)
+    return
+  }
+
+  next();
+});
+
+
+// Serve static files from the dist directory
+app.use(express.static(distPath));
+
 
 // Start the server
 app.listen(PORT, () => {

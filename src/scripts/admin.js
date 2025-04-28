@@ -104,7 +104,7 @@
   function setupEventListeners() {
     // Listen for keyboard shortcut (Ctrl+Shift+A) to show login prompt
     document.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
         if (!state.isAuthenticated) {
           showLoginPrompt();
         }
@@ -125,6 +125,12 @@
         syncFromMongo();
       } else if (e.target.id === 'admin-view-audit') {
         showAuditHistory();
+      } else if (e.target.id === 'admin-manage-injections') {
+        if (window.AdminInjections) {
+          window.AdminInjections.showInjectionsManager();
+        } else {
+          Toast.show('Injection manager not loaded', 'error');
+        }
       } else if (e.target.id === 'audit-apply-filters') {
         applyAuditFilters();
       } else if (e.target.id === 'audit-reset-filters') {
@@ -321,6 +327,13 @@
     viewAuditBtn.className = 'px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 transition-colors';
     viewAuditBtn.textContent = 'Audit History';
     rightControls.appendChild(viewAuditBtn);
+
+    // Script & Style Injections button
+    const injectionsBtn = document.createElement('button');
+    injectionsBtn.id = 'admin-manage-injections';
+    injectionsBtn.className = 'px-3 py-1 rounded bg-teal-600 hover:bg-teal-700 transition-colors';
+    injectionsBtn.textContent = 'Script & Style Injections';
+    rightControls.appendChild(injectionsBtn);
 
     // Open in new tab
     const openNewTab = document.createElement('button');
@@ -665,6 +678,7 @@
     // Add editor to document
     document.body.appendChild(editor);
 
+// ... (rest of the code remains the same)
     // Focus first input/textarea
     setTimeout(() => {
       const firstInput = editor.querySelector('input, textarea');

@@ -10,15 +10,16 @@ This document provides a comprehensive guide to the admin mode functionality of 
 4. [Keyboard Shortcuts](#keyboard-shortcuts)
 5. [MongoDB Integration](#mongodb-integration)
 6. [Audit History](#audit-history)
-7. [Security Considerations](#security-considerations)
-8. [Troubleshooting](#troubleshooting)
+7. [Script & Style Injections](#script--style-injections)
+8. [Security Considerations](#security-considerations)
+9. [Troubleshooting](#troubleshooting)
 
 ## Accessing Admin Mode
 
 To access admin mode:
 
 1. Navigate to any page on the website
-2. Press the `?` key to reveal the admin login prompt
+2. Press `Ctrl+Shift+A` to reveal the admin login prompt
 3. Enter the admin password (set via the `ADMIN_PASSWORD` environment variable)
 4. Upon successful authentication, the admin bar will appear at the top of the page
 
@@ -103,7 +104,7 @@ The admin interface supports several keyboard shortcuts for efficiency:
 
 | Shortcut | Action | Context |
 |----------|--------|---------|
-| `?` | Show admin login prompt | Anywhere on the site |
+| `Ctrl+Shift+A` | Show admin login prompt | Anywhere on the site |
 | `Ctrl+Shift+E` | Toggle edit mode | When authenticated |
 | `Ctrl+Enter` | Save changes | When editing an element |
 | `Esc` | Cancel editing | When editing an element |
@@ -161,6 +162,51 @@ You can filter the audit logs by:
 
 Click "Apply Filters" to update the view based on your selections. The filtering functionality is implemented in the `applyAuditFilters()` and `resetAuditFilters()` functions in `src/scripts/admin.js`. The server-side filtering is handled by the audit endpoint in `src/server.js`, which applies the filters to the MongoDB query.
 
+## Script & Style Injections
+
+The admin interface includes a script and style injection system that allows administrators to add custom JavaScript or CSS to the website without modifying code files. This is useful for adding analytics scripts, custom styles, or other third-party integrations.
+
+### Accessing the Injections Manager
+
+1. Click the "Script & Style Injections" button in the admin bar
+2. View the list of existing injections or create new ones
+
+### Creating a New Injection
+
+1. Click "Add New Injection" in the injections manager
+2. Fill out the form:
+   - **Name**: A descriptive name for the injection (e.g., "Google Analytics")
+   - **Type**: Select between "script" (JavaScript) or "style" (CSS)
+   - **Injection Location**: Choose where to inject the code:
+     - **Before Body Close**: End of the HTML body (recommended for most scripts)
+     - **Before Head Close**: End of the HTML head (for styles or scripts that need to load early)
+   - **Code**: The actual JavaScript or CSS code to inject
+3. Click "Save Injection"
+
+### Managing Injections
+
+For each injection, you can:
+
+- **Edit**: Modify the injection's name, type, location, or code
+- **Activate/Deactivate**: Toggle whether the injection is active without deleting it
+- **Delete**: Permanently remove the injection
+
+### System vs. User Injections
+
+- **System Injections**: Created by the system or plugins and cannot be edited or deleted by users (marked as "system" origin)
+- **User Injections**: Created by admin users and can be fully managed
+
+### Implementation Details
+
+Injections are implemented using the following components:
+
+- MongoDB model defined in `src/models/Injection.js`
+- DB utilities in `src/db/injection.js`
+- API endpoints in `src/server.js` under `/api/injections`
+- Frontend management interface in `src/scripts/admin-injections.js`
+
+All injections have unique IDs and include attributes to prevent duplicate injections when the page is loaded.
+
 ## Security Considerations
 
 The admin mode includes several security features:
@@ -197,6 +243,12 @@ The authentication middleware (`authenticateToken`) in `src/server.js` verifies 
 4. **Keyboard shortcuts not working**
    - Ensure you're in the correct context (admin mode for Ctrl+Shift+E, editor for Ctrl+Enter)
    - Check if there are any browser extensions that might be capturing the keyboard shortcuts
+
+5. **Script & Style injections not working**
+   - Check that the injection is marked as "Active"
+   - Verify that you've selected the correct injection location
+   - Ensure that the code doesn't contain syntax errors
+   - Check that a similar injection with the same ID doesn't already exist
    - Verify that the event listeners in `src/scripts/admin.js` are properly registered
 
 ### Getting Help
@@ -210,4 +262,4 @@ If you encounter issues not covered in this documentation, please:
 
 ---
 
-*Last updated: May 2023*
+*Last updated: April 2025*

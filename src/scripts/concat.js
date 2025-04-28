@@ -140,7 +140,7 @@ function compileHTML() {
     console.log(`Compilation successful! Output: ${outputPath}`);
 
     // Copy admin scripts to dist/scripts
-    const adminScripts = ['admin-helpers.js', 'admin.js'];
+    const adminScripts = ['admin-helpers.js', 'admin.js', 'admin-injections.js'];
 
     for (const scriptName of adminScripts) {
       const scriptPath = path.join(scriptsDir, scriptName);
