@@ -111,7 +111,7 @@
       }
     });
 
-    // Listen for edit mode toggle
+    // Listen for edit mode toggle and other button clicks
     document.addEventListener('click', function(e) {
       if (e.target.id === 'admin-toggle-edit') {
         toggleEditMode();
@@ -125,8 +125,6 @@
         syncFromMongo();
       } else if (e.target.id === 'admin-view-audit') {
         showAuditHistory();
-      } else if (e.target.id === 'audit-modal-close' || e.target.id === 'audit-modal-backdrop') {
-        closeAuditModal();
       } else if (e.target.id === 'audit-apply-filters') {
         applyAuditFilters();
       } else if (e.target.id === 'audit-reset-filters') {
@@ -139,6 +137,21 @@
         if (!isNaN(page)) {
           loadAuditLogs(page);
         }
+      }
+    });
+
+    // Add separate event listeners for modal close
+    document.addEventListener('click', function(e) {
+      // Check if the click is on the backdrop or close button
+      if (e.target.id === 'audit-modal-backdrop') {
+        closeAuditModal();
+      }
+    });
+
+    // Add event listener for the close button
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('#audit-modal-close')) {
+        closeAuditModal();
       }
     });
   }
@@ -228,16 +241,26 @@
 
     const adminNameLabel = document.createElement('label');
     adminNameLabel.htmlFor = 'admin-name-input';
-    adminNameLabel.className = 'text-sm text-gray-300';
-    adminNameLabel.textContent = 'Your name:';
+    adminNameLabel.className = 'text-sm text-gray-300 flex items-center';
+    adminNameLabel.innerHTML = 'Your name: <span class="text-red-400 ml-1">*</span>';
     adminNameContainer.appendChild(adminNameLabel);
 
     const adminNameInput = document.createElement('input');
     adminNameInput.id = 'admin-name-input';
     adminNameInput.type = 'text';
-    adminNameInput.className = 'px-2 py-1 rounded text-sm bg-gray-700 border border-gray-600 text-white';
+    adminNameInput.className = 'px-2 py-1 rounded text-sm bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
     adminNameInput.placeholder = 'Enter your name';
     adminNameInput.value = state.adminName;
+    adminNameInput.required = true;
+    adminNameInput.setAttribute('aria-required', 'true');
+
+    // Add event listener for Enter key
+    adminNameInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        saveAdminName();
+      }
+    });
+
     adminNameContainer.appendChild(adminNameInput);
 
     const adminNameSave = document.createElement('button');
@@ -310,6 +333,25 @@
 
   // Toggle edit mode
   function toggleEditMode() {
+    // Check if admin name is set
+    if (!state.adminName.trim() && !state.isEditMode) {
+      // Show warning and focus the name input
+      Toast.show('Please enter your name before enabling edit mode', 'error');
+
+      const nameInput = document.getElementById('admin-name-input');
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.classList.add('border-red-500', 'ring-red-500');
+
+        // Remove highlight after a delay
+        setTimeout(() => {
+          nameInput.classList.remove('border-red-500', 'ring-red-500');
+        }, 3000);
+      }
+
+      return;
+    }
+
     state.isEditMode = !state.isEditMode;
 
     const editToggle = document.getElementById('admin-toggle-edit');
@@ -436,6 +478,28 @@
 
   // Save changes
   function saveChanges(element) {
+    // Check if admin name is set
+    if (!state.adminName.trim()) {
+      // Show warning and focus the name input
+      Toast.show('Please enter your name before saving changes', 'error');
+
+      // Close editor
+      closeEditor();
+
+      const nameInput = document.getElementById('admin-name-input');
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.classList.add('border-red-500', 'ring-red-500');
+
+        // Remove highlight after a delay
+        setTimeout(() => {
+          nameInput.classList.remove('border-red-500', 'ring-red-500');
+        }, 3000);
+      }
+
+      return;
+    }
+
     const content = document.getElementById('admin-editor-content').value;
     const elementId = element.getAttribute('data-id');
     const elementType = element.tagName.toLowerCase();
@@ -463,7 +527,7 @@
         elementType,
         content,
         path: window.location.pathname,
-        adminName: state.adminName || 'unknown'
+        adminName: state.adminName
       })
     })
     .then(response => {
@@ -502,6 +566,25 @@
 
   // Sync from MongoDB
   function syncFromMongo() {
+    // Check if admin name is set
+    if (!state.adminName.trim()) {
+      // Show warning and focus the name input
+      Toast.show('Please enter your name before syncing from MongoDB', 'error');
+
+      const nameInput = document.getElementById('admin-name-input');
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.classList.add('border-red-500', 'ring-red-500');
+
+        // Remove highlight after a delay
+        setTimeout(() => {
+          nameInput.classList.remove('border-red-500', 'ring-red-500');
+        }, 3000);
+      }
+
+      return;
+    }
+
     // Show confirmation dialog with warning
     const confirmMessage = 'WARNING: This will overwrite local files with content from MongoDB.\n\nAre you sure you know what you are doing?\n\nThis action cannot be undone.';
 
@@ -524,7 +607,7 @@
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          adminName: state.adminName || 'unknown'
+          adminName: state.adminName
         })
       })
       .then(response => {
@@ -614,7 +697,7 @@
           <!-- Header -->
           <div class="bg-gray-100 px-6 py-4 border-b flex justify-between items-center">
             <h2 class="text-xl font-bold text-gray-800">Audit History</h2>
-            <button id="audit-modal-close" class="text-gray-500 hover:text-gray-700">
+            <button type="button" id="audit-modal-close" class="text-gray-500 hover:text-gray-700">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
