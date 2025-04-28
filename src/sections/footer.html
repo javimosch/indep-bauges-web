@@ -1,0 +1,145 @@
+<footer class="bg-bauges-dark text-white pt-16 pb-6">
+  <div class="container mx-auto px-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+      <!-- About -->
+      <div>
+        <div class="flex items-center gap-2 mb-6">
+          <div class="h-10 w-10 rounded-full bg-bauges-accent flex items-center justify-center">
+            <span class="text-bauges-dark font-bold">IB</span>
+          </div>
+          <span class="text-bauges-accent font-display font-bold text-xl">Indépendants en Bauges</span>
+        </div>
+        
+        <p class="mb-4 text-sm text-white/70">
+          Un collectif de freelances et entrepreneurs indépendants basés dans le Massif des Bauges en Savoie.
+        </p>
+        
+        <p class="text-sm text-white/70">
+          Association loi 1901<br>
+          SIRET: XX XXX XXX XXXXX
+        </p>
+      </div>
+      
+      <!-- Quick Links -->
+      <div>
+        <h3 class="text-lg font-bold mb-6 text-bauges-accent">Liens rapides</h3>
+        <ul class="space-y-3 text-sm text-white/70">
+          <li><a href="#about" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
+            <i class="fas fa-chevron-right text-xs"></i> À propos
+          </a></li>
+          <li><a href="#services" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
+            <i class="fas fa-chevron-right text-xs"></i> Services
+          </a></li>
+          <li><a href="#members" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
+            <i class="fas fa-chevron-right text-xs"></i> Membres
+          </a></li>
+          <li><a href="#events" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
+            <i class="fas fa-chevron-right text-xs"></i> Événements
+          </a></li>
+          <li><a href="#join" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
+            <i class="fas fa-chevron-right text-xs"></i> Nous rejoindre
+          </a></li>
+          <li><a href="#contact" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
+            <i class="fas fa-chevron-right text-xs"></i> Contact
+          </a></li>
+        </ul>
+      </div>
+      
+      <!-- Legals -->
+      <div>
+        <h3 class="text-lg font-bold mb-6 text-bauges-accent">Informations légales</h3>
+        <ul class="space-y-3 text-sm text-white/70">
+          <li><a href="#" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
+            <i class="fas fa-chevron-right text-xs"></i> Mentions légales
+          </a></li>
+          <li><a href="#" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
+            <i class="fas fa-chevron-right text-xs"></i> Politique de confidentialité
+          </a></li>
+          <li><a href="#" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
+            <i class="fas fa-chevron-right text-xs"></i> Conditions générales
+          </a></li>
+          <li><a href="#" class="hover:text-bauges-accent transition-colors flex items-center gap-2">
+            <i class="fas fa-chevron-right text-xs"></i> Accessibilité
+          </a></li>
+        </ul>
+      </div>
+      
+      <!-- Contact -->
+      <div>
+        <h3 class="text-lg font-bold mb-6 text-bauges-accent">Contact</h3>
+        <ul class="space-y-3 text-sm text-white/70">
+          <li class="flex items-start gap-3">
+            <i class="fas fa-map-marker-alt mt-1 text-bauges-accent"></i>
+            <span>Maison des Associations<br>73630 Le Châtelard</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <i class="fas fa-envelope mt-1 text-bauges-accent"></i>
+            <a href="mailto:contact@independants-bauges.fr" class="hover:text-bauges-accent transition-colors">
+              contact@independants-bauges.fr
+            </a>
+          </li>
+          <li class="flex items-start gap-3">
+            <i class="fas fa-phone mt-1 text-bauges-accent"></i>
+            <span>06 XX XX XX XX</span>
+          </li>
+        </ul>
+        
+        <div class="flex gap-4 mt-6">
+          <a href="#" class="text-white/70 hover:text-bauges-accent transition-colors">
+            <i class="fab fa-facebook-f"></i>
+          </a>
+          <a href="#" class="text-white/70 hover:text-bauges-accent transition-colors">
+            <i class="fab fa-instagram"></i>
+          </a>
+          <a href="#" class="text-white/70 hover:text-bauges-accent transition-colors">
+            <i class="fab fa-linkedin-in"></i>
+          </a>
+          <a href="#" class="text-white/70 hover:text-bauges-accent transition-colors">
+            <i class="fab fa-youtube"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="border-t border-white/10 pt-6 text-center text-sm text-white/50">
+      <p>&copy; 2025 Indépendants en Bauges. Tous droits réservés.</p>
+      <p class="mt-2">Site réalisé avec ❤️ par les membres de l'association</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Back to Top Button -->
+<a href="#top" class="fixed bottom-6 right-6 btn btn-circle btn-primary text-white shadow-lg hover:shadow-xl transition-all duration-300 hidden z-50">
+  <i class="fas fa-arrow-up"></i>
+</a>
+
+<!-- JavaScript for interactions -->
+<script>
+  // Smooth scrolling for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      
+      const targetId = this.getAttribute('href');
+      const targetElement = document.querySelector(targetId);
+      
+      if (targetElement) {
+        window.scrollTo({
+          top: targetElement.offsetTop - 80, // Adjust for header height
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+  
+  // Show/hide back to top button based on scroll position
+  window.addEventListener('scroll', function() {
+    const backToTopButton = document.querySelector('a[href="#top"]');
+    
+    if (window.scrollY > 300) {
+      backToTopButton.classList.remove('hidden');
+    } else {
+      backToTopButton.classList.add('hidden');
+    }
+  });
+</script>

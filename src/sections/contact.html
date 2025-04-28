@@ -1,0 +1,171 @@
+<section id="contact" class="py-20 bg-white">
+  <div class="container mx-auto px-4">
+    <div class="text-center mb-16">
+      <span class="inline-block px-3 py-1 bg-bauges-secondary/20 text-bauges-primary rounded-full text-sm font-semibold mb-4">Contact</span>
+      <h2 class="text-3xl md:text-4xl font-bold font-display text-bauges-primary mb-4">Contactez-nous</h2>
+      <p class="text-lg max-w-2xl mx-auto text-bauges-dark/80">Une question ? Un projet ? N'hésitez pas à nous écrire</p>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+      <!-- Contact Info (2 columns) -->
+      <div class="lg:col-span-2 bg-bauges-light p-8 rounded-xl shadow-lg">
+        <h3 class="text-2xl font-bold text-bauges-primary mb-6 font-display">Nos coordonnées</h3>
+        
+        <div class="space-y-6 mb-8">
+          <div class="flex items-start gap-4">
+            <div class="bg-bauges-primary text-white p-3 rounded-xl">
+              <i class="fas fa-map-marker-alt text-lg"></i>
+            </div>
+            <div>
+              <h4 class="font-semibold text-bauges-primary mb-1">Adresse</h4>
+              <p class="text-bauges-dark/80">
+                Maison des Associations<br>
+                73630 Le Châtelard<br>
+                Savoie, France
+              </p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-4">
+            <div class="bg-bauges-primary text-white p-3 rounded-xl">
+              <i class="fas fa-envelope text-lg"></i>
+            </div>
+            <div>
+              <h4 class="font-semibold text-bauges-primary mb-1">Email</h4>
+              <p class="text-bauges-dark/80">
+                <a href="mailto:contact@independants-bauges.fr" class="hover:text-bauges-primary transition-colors">
+                  contact@independants-bauges.fr
+                </a>
+              </p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-4">
+            <div class="bg-bauges-primary text-white p-3 rounded-xl">
+              <i class="fas fa-phone text-lg"></i>
+            </div>
+            <div>
+              <h4 class="font-semibold text-bauges-primary mb-1">Téléphone</h4>
+              <p class="text-bauges-dark/80">06 XX XX XX XX</p>
+              <p class="text-sm text-bauges-dark/60">
+                Permanence téléphonique:<br>
+                Du lundi au vendredi, 9h-12h / 14h-17h
+              </p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-4">
+            <div class="bg-bauges-primary text-white p-3 rounded-xl">
+              <i class="fas fa-clock text-lg"></i>
+            </div>
+            <div>
+              <h4 class="font-semibold text-bauges-primary mb-1">Horaires d'accueil</h4>
+              <p class="text-bauges-dark/80">
+                Mardi: 9h-12h<br>
+                Jeudi: 14h-17h<br>
+                Autres jours: sur rendez-vous
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <h3 class="text-xl font-bold text-bauges-primary mb-4 font-display">Suivez-nous</h3>
+        <div class="flex gap-4">
+          <a href="#" class="bg-bauges-light hover:bg-bauges-accent/20 text-bauges-primary p-3 rounded-full transition-colors">
+            <i class="fab fa-facebook-f text-lg"></i>
+          </a>
+          <a href="#" class="bg-bauges-light hover:bg-bauges-accent/20 text-bauges-primary p-3 rounded-full transition-colors">
+            <i class="fab fa-instagram text-lg"></i>
+          </a>
+          <a href="#" class="bg-bauges-light hover:bg-bauges-accent/20 text-bauges-primary p-3 rounded-full transition-colors">
+            <i class="fab fa-linkedin-in text-lg"></i>
+          </a>
+          <a href="#" class="bg-bauges-light hover:bg-bauges-accent/20 text-bauges-primary p-3 rounded-full transition-colors">
+            <i class="fab fa-youtube text-lg"></i>
+          </a>
+        </div>
+      </div>
+      
+      <!-- Contact Form (3 columns) -->
+      <div class="lg:col-span-3 bg-bauges-light p-8 rounded-xl shadow-lg">
+        <h3 class="text-2xl font-bold text-bauges-primary mb-6 font-display">Envoyez-nous un message</h3>
+        
+        <form class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-bauges-dark/80 font-medium">Nom complet *</span>
+              </label>
+              <input type="text" placeholder="Votre nom" class="input input-bordered focus:border-bauges-primary" required />
+            </div>
+            
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-bauges-dark/80 font-medium">Email *</span>
+              </label>
+              <input type="email" placeholder="votre@email.com" class="input input-bordered focus:border-bauges-primary" required />
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-bauges-dark/80 font-medium">Téléphone</span>
+              </label>
+              <input type="tel" placeholder="06 XX XX XX XX" class="input input-bordered focus:border-bauges-primary" />
+            </div>
+            
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-bauges-dark/80 font-medium">Sujet *</span>
+              </label>
+              <select class="select select-bordered focus:border-bauges-primary" required>
+                <option value="" disabled selected>Sélectionnez un sujet</option>
+                <option value="adhesion">Demande d'adhésion</option>
+                <option value="services">Renseignements sur nos services</option>
+                <option value="partenariat">Proposition de partenariat</option>
+                <option value="presse">Demande presse/média</option>
+                <option value="autre">Autre demande</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text text-bauges-dark/80 font-medium">Message *</span>
+            </label>
+            <textarea class="textarea textarea-bordered h-32 focus:border-bauges-primary" placeholder="Votre message" required></textarea>
+          </div>
+          
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-2">
+              <input type="checkbox" class="checkbox checkbox-primary" />
+              <span class="label-text text-bauges-dark/80">Je souhaite m'inscrire à la newsletter</span>
+            </label>
+          </div>
+          
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-2">
+              <input type="checkbox" class="checkbox checkbox-primary" required />
+              <span class="label-text text-bauges-dark/80">J'accepte que mes données soient traitées conformément à la politique de confidentialité *</span>
+            </label>
+          </div>
+          
+          <button type="submit" class="btn btn-primary text-white">Envoyer</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Map -->
+    <div class="mt-16 rounded-xl overflow-hidden shadow-lg">
+      <iframe 
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2781.7631699293694!2d6.1397126!3d45.6721073!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x478b8f1e7f656f63%3A0xa3c20d8c09358a0!2sMairie%20de%20Le%20Ch%C3%A2telard!5e0!3m2!1sfr!2sfr!4v1619958090000!5m2!1sfr!2sfr" 
+        width="100%" 
+        height="450" 
+        style="border:0;" 
+        allowfullscreen="" 
+        loading="lazy"
+      ></iframe>
+    </div>
+  </div>
+</section>

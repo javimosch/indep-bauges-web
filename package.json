@@ -1,0 +1,22 @@
+{
+  "name": "indep-bauges",
+  "version": "1.0.0",
+  "description": "Website for Indépendants en Bauges",
+  "main": "src/server.js",
+  "scripts": {
+    "build": "node src/scripts/concat.js",
+    "serve": "node src/server.js",
+    "start": "npm run build && npm run serve",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "bauges",
+    "website",
+    "html"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
