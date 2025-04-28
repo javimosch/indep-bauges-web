@@ -101,12 +101,20 @@ function compileHTML() {
   const sectionsDir = path.join(rootDir, 'src/sections');
   const indexPath = path.join(sectionsDir, 'index.html');
   const outputPath = path.join(rootDir, 'dist/index.html');
+  const scriptsDir = path.join(rootDir, 'src/scripts');
+  const distScriptsDir = path.join(rootDir, 'dist/scripts');
 
   // Ensure dist directory exists
   const distDir = path.dirname(outputPath);
   if (!fs.existsSync(distDir)) {
     console.log(`Creating directory: ${distDir}`);
     fs.mkdirSync(distDir, { recursive: true });
+  }
+
+  // Ensure dist/scripts directory exists
+  if (!fs.existsSync(distScriptsDir)) {
+    console.log(`Creating directory: ${distScriptsDir}`);
+    fs.mkdirSync(distScriptsDir, { recursive: true });
   }
 
   // Check if index.html exists
@@ -130,8 +138,19 @@ function compileHTML() {
     console.log(`Writing compiled file: ${outputPath}`);
     fs.writeFileSync(outputPath, indexContent);
     console.log(`Compilation successful! Output: ${outputPath}`);
+
+    // Copy admin.js to dist/scripts
+    const adminJsPath = path.join(scriptsDir, 'admin.js');
+    if (fs.existsSync(adminJsPath)) {
+      const adminJsContent = fs.readFileSync(adminJsPath, 'utf8');
+      const distAdminJsPath = path.join(distScriptsDir, 'admin.js');
+      fs.writeFileSync(distAdminJsPath, adminJsContent);
+      console.log(`Copied admin.js to ${distAdminJsPath}`);
+    } else {
+      console.warn(`Warning: admin.js not found at ${adminJsPath}`);
+    }
   } catch (error) {
-    console.error(`Error writing file: ${outputPath}`, error.message);
+    console.error(`Error in compilation process:`, error.message);
     process.exit(1);
   }
 }

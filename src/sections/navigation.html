@@ -1,4 +1,4 @@
-<header class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow">
+<html><head></head><body><header class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow">
   <div class="navbar container mx-auto px-4 py-3">
     <div class="navbar-start">
       <div class="dropdown">
@@ -6,9 +6,9 @@
           <i class="fas fa-bars text-bauges-dark text-xl"></i>
         </div>
         <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-lg w-52">
-          <li><a href="#about" class="font-medium">À propos</a></li>
-          <li><a href="#services" class="font-medium">Services</a></li>
-          <li><a href="#contact" class="font-medium">Contact</a></li>
+          <li><a href="#about" class="font-medium" data-id="nav-mobile-about">À propos</a></li>
+          <li><a href="#services" class="font-medium" data-id="nav-mobile-services">Services</a></li>
+          <li><a href="#contact" class="font-medium" data-id="nav-mobile-contact">Contact</a></li>
         </ul>
       </div>
 
@@ -16,16 +16,17 @@
         <div class="h-10 w-10 rounded-full bg-bauges-primary flex items-center justify-center">
           <span class="text-white font-bold">IB</span>
         </div>
-        <span class="text-bauges-primary font-display font-bold text-xl hidden md:inline-block">Indépendants en Bauges</span>
+        <span class="text-bauges-primary font-display font-bold text-xl hidden md:inline-block" data-id="nav-brand-text">Indépendants en Bauges</span>
       </a>
     </div>
 
     <div class="navbar-end hidden lg:flex">
       <ul class="menu menu-horizontal px-1 gap-1 items-center">
-        <li><a href="#about" class="font-medium hover:text-bauges-primary transition-colors">À propos</a></li>
-        <li><a href="#services" class="font-medium hover:text-bauges-primary transition-colors">Services</a></li>
-        <li><a href="#contact" class="font-medium hover:text-bauges-primary transition-colors">Contact</a></li>
+        <li><a href="#about" class="font-medium hover:text-bauges-primary transition-colors" data-id="nav-desktop-about">À propos.</a></li>
+        <li><a href="#services" class="font-medium hover:text-bauges-primary transition-colors" data-id="nav-desktop-services">Services</a></li>
+        <li><a href="#contact" class="font-medium hover:text-bauges-primary transition-colors" data-id="nav-desktop-contact">Contact</a></li>
       </ul>
     </div>
   </div>
 </header>
+</body></html>
