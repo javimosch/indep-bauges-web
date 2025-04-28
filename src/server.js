@@ -17,7 +17,7 @@ const mongoose = require('mongoose');
 
 // MongoDB connection and models
 const connectDB = require('./db/mongoose');
-const { saveSectionToMongo, saveAuditLog, initializeMongo } = require('./db/sync');
+const { saveSectionToMongo, saveAuditLog, syncFromMongo, initializeMongo } = require('./db/sync');
 
 // Create Express app
 const app = express();
@@ -109,6 +109,72 @@ app.post('/api/auth', (req, res) => {
 // Token verification endpoint
 app.post('/api/auth/verify', authenticateToken, (req, res) => {
   res.json({ success: true, message: 'Token is valid' });
+});
+
+// API endpoint for syncing from MongoDB
+app.post('/api/sync-from-mongo', authenticateToken, async (req, res) => {
+  try {
+    const { adminName = 'unknown' } = req.body;
+
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'MongoDB is not connected'
+      });
+    }
+
+    console.log(`Sync from MongoDB requested by admin: ${adminName}`);
+
+    // Sync from MongoDB to filesystem
+    const syncedFiles = await syncFromMongo();
+
+    if (syncedFiles.length > 0) {
+      // Create audit log entry for the sync
+      await saveAuditLog({
+        filename: 'system',
+        elementId: 'sync-from-mongo',
+        elementType: 'system',
+        previousContent: 'N/A',
+        newContent: `Synced ${syncedFiles.length} files from MongoDB`,
+        adminName,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
+      // Trigger rebuild
+      exec('npm run build', (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Build error: ${error.message}`);
+          return res.status(500).json({
+            success: false,
+            message: 'Error rebuilding site after sync'
+          });
+        }
+
+        console.log(`Build output: ${stdout}`);
+        if (stderr) console.error(`Build stderr: ${stderr}`);
+
+        res.json({
+          success: true,
+          message: 'Successfully synced from MongoDB',
+          syncedFiles
+        });
+      });
+    } else {
+      res.json({
+        success: true,
+        message: 'No files to sync from MongoDB',
+        syncedFiles: []
+      });
+    }
+  } catch (error) {
+    console.error('Error syncing from MongoDB:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error syncing from MongoDB: ' + error.message
+    });
+  }
 });
 
 // API endpoint for saving content changes

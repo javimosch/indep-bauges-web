@@ -17,6 +17,7 @@
   const CONFIG = {
     apiEndpoint: '/api/save-content',
     authEndpoint: '/api/auth',
+    syncEndpoint: '/api/sync-from-mongo',
     editableSelectors: 'h1, h2, h3, h4, h5, h6, p, a, button',
     storageKey: 'admin_auth_token',
     adminNameKey: 'admin_name',
@@ -103,6 +104,8 @@
         window.open(window.location.href, '_blank');
       } else if (e.target.id === 'admin-save-name') {
         saveAdminName();
+      } else if (e.target.id === 'admin-sync-from-mongo') {
+        syncFromMongo();
       }
     });
   }
@@ -222,6 +225,13 @@
     mongoStatus.className = 'text-sm text-gray-300';
     mongoStatus.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-gray-500 mr-1"></span> MongoDB';
     rightControls.appendChild(mongoStatus);
+
+    // Sync from MongoDB button
+    const syncFromMongoBtn = document.createElement('button');
+    syncFromMongoBtn.id = 'admin-sync-from-mongo';
+    syncFromMongoBtn.className = 'px-3 py-1 rounded bg-purple-600 hover:bg-purple-700 transition-colors';
+    syncFromMongoBtn.textContent = 'Sync from MongoDB';
+    rightControls.appendChild(syncFromMongoBtn);
 
     // Open in new tab
     const openNewTab = document.createElement('button');
@@ -448,6 +458,71 @@
       console.error('Error saving changes:', error);
       Toast.show('Error saving changes. Please try again.', 'error');
     });
+  }
+
+  // Sync from MongoDB
+  function syncFromMongo() {
+    // Show confirmation dialog with warning
+    const confirmMessage = 'WARNING: This will overwrite local files with content from MongoDB.\n\nAre you sure you know what you are doing?\n\nThis action cannot be undone.';
+
+    if (confirm(confirmMessage)) {
+      // Get auth token
+      const authData = Storage.get(CONFIG.storageKey) || {};
+      const token = authData.token || '';
+
+      // Update MongoDB status indicator
+      const mongoStatus = document.getElementById('admin-mongo-status');
+      if (mongoStatus) {
+        mongoStatus.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-yellow-500 mr-1"></span> Syncing...';
+      }
+
+      // Call the sync API
+      fetch(CONFIG.syncEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          adminName: state.adminName || 'unknown'
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Update MongoDB status indicator
+        if (mongoStatus) {
+          if (data.success) {
+            mongoStatus.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span> Sync Complete';
+            Toast.show(`Successfully synced ${data.syncedFiles.length} files from MongoDB`, 'success');
+
+            // Reload the page after a short delay to show the changes
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          } else {
+            mongoStatus.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span> Sync Failed';
+            Toast.show('Sync failed: ' + (data.message || 'Unknown error'), 'error');
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error syncing from MongoDB:', error);
+
+        // Update MongoDB status indicator
+        if (mongoStatus) {
+          mongoStatus.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span> Sync Error';
+        }
+
+        Toast.show('Error syncing from MongoDB. Please try again.', 'error');
+      });
+    } else {
+      Toast.show('Sync from MongoDB cancelled', 'info');
+    }
   }
 
   // Logout
