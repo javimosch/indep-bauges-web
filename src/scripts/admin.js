@@ -18,6 +18,7 @@
     apiEndpoint: '/api/save-content',
     authEndpoint: '/api/auth',
     syncEndpoint: '/api/sync-from-mongo',
+    auditEndpoint: '/api/audit-logs',
     editableSelectors: 'h1, h2, h3, h4, h5, h6, p, a, button',
     storageKey: 'admin_auth_token',
     adminNameKey: 'admin_name',
@@ -34,7 +35,23 @@
     isEditMode: false,
     lastEditTimestamp: null,
     currentlyEditing: null,
-    adminName: Storage.get(CONFIG.adminNameKey) || ''
+    adminName: Storage.get(CONFIG.adminNameKey) || '',
+    auditLogs: {
+      logs: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        pages: 0
+      },
+      filters: {
+        adminNames: [],
+        elementTypes: [],
+        filenames: []
+      },
+      isLoading: false,
+      currentFilter: {}
+    }
   };
 
   // Initialize admin functionality
@@ -106,6 +123,22 @@
         saveAdminName();
       } else if (e.target.id === 'admin-sync-from-mongo') {
         syncFromMongo();
+      } else if (e.target.id === 'admin-view-audit') {
+        showAuditHistory();
+      } else if (e.target.id === 'audit-modal-close' || e.target.id === 'audit-modal-backdrop') {
+        closeAuditModal();
+      } else if (e.target.id === 'audit-apply-filters') {
+        applyAuditFilters();
+      } else if (e.target.id === 'audit-reset-filters') {
+        resetAuditFilters();
+      }
+
+      // Handle pagination clicks
+      if (e.target.classList.contains('audit-page-btn')) {
+        const page = parseInt(e.target.dataset.page);
+        if (!isNaN(page)) {
+          loadAuditLogs(page);
+        }
       }
     });
   }
@@ -232,6 +265,13 @@
     syncFromMongoBtn.className = 'px-3 py-1 rounded bg-purple-600 hover:bg-purple-700 transition-colors';
     syncFromMongoBtn.textContent = 'Sync from MongoDB';
     rightControls.appendChild(syncFromMongoBtn);
+
+    // View Audit History button
+    const viewAuditBtn = document.createElement('button');
+    viewAuditBtn.id = 'admin-view-audit';
+    viewAuditBtn.className = 'px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 transition-colors';
+    viewAuditBtn.textContent = 'Audit History';
+    rightControls.appendChild(viewAuditBtn);
 
     // Open in new tab
     const openNewTab = document.createElement('button');
@@ -543,6 +583,509 @@
 
     // Remove editor if open
     closeEditor();
+  }
+
+  // Show audit history modal
+  function showAuditHistory() {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('audit-modal');
+    if (!modal) {
+      modal = createAuditModal();
+    }
+
+    // Show modal
+    modal.classList.remove('hidden');
+
+    // Load audit logs
+    loadAuditLogs();
+  }
+
+  // Create audit modal
+  function createAuditModal() {
+    const modal = document.createElement('div');
+    modal.id = 'audit-modal';
+    modal.className = 'fixed inset-0 z-[10000] overflow-y-auto hidden';
+
+    // Modal HTML structure
+    modal.innerHTML = `
+      <div id="audit-modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50"></div>
+      <div class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+          <!-- Header -->
+          <div class="bg-gray-100 px-6 py-4 border-b flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-800">Audit History</h2>
+            <button id="audit-modal-close" class="text-gray-500 hover:text-gray-700">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Filters -->
+          <div class="bg-gray-50 px-6 py-4 border-b">
+            <div class="flex flex-wrap gap-4">
+              <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Admin Name</label>
+                <select id="audit-filter-admin" class="w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                  <option value="">All Admins</option>
+                </select>
+              </div>
+              <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Element Type</label>
+                <select id="audit-filter-type" class="w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                  <option value="">All Types</option>
+                </select>
+              </div>
+              <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 mb-1">File</label>
+                <select id="audit-filter-file" class="w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                  <option value="">All Files</option>
+                </select>
+              </div>
+              <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                <div class="flex gap-2">
+                  <input type="date" id="audit-filter-start-date" class="flex-1 rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="From">
+                  <input type="date" id="audit-filter-end-date" class="flex-1 rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="To">
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-end mt-4 gap-2">
+              <button id="audit-reset-filters" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors">Reset Filters</button>
+              <button id="audit-apply-filters" class="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 transition-colors text-white">Apply Filters</button>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="flex-1 overflow-auto p-6">
+            <div id="audit-loading" class="flex justify-center items-center py-12 hidden">
+              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+
+            <div id="audit-empty" class="text-center py-12 text-gray-500 hidden">
+              No audit logs found.
+            </div>
+
+            <div id="audit-error" class="text-center py-12 text-red-500 hidden">
+              Error loading audit logs. Please try again.
+            </div>
+
+            <div id="audit-content">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Element</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Changes</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-table-body" class="bg-white divide-y divide-gray-200">
+                  <!-- Audit logs will be inserted here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div class="bg-gray-50 px-6 py-4 border-t">
+            <div class="flex justify-between items-center">
+              <div class="text-sm text-gray-700" id="audit-pagination-info">
+                Showing <span id="audit-page-start">0</span> to <span id="audit-page-end">0</span> of <span id="audit-total">0</span> results
+              </div>
+              <div class="flex gap-2" id="audit-pagination-controls">
+                <!-- Pagination buttons will be inserted here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  // Close audit modal
+  function closeAuditModal() {
+    const modal = document.getElementById('audit-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+    }
+  }
+
+  // Load audit logs
+  function loadAuditLogs(page = 1) {
+    // Show loading state
+    const loadingEl = document.getElementById('audit-loading');
+    const contentEl = document.getElementById('audit-content');
+    const emptyEl = document.getElementById('audit-empty');
+    const errorEl = document.getElementById('audit-error');
+
+    if (loadingEl) loadingEl.classList.remove('hidden');
+    if (contentEl) contentEl.classList.add('hidden');
+    if (emptyEl) emptyEl.classList.add('hidden');
+    if (errorEl) errorEl.classList.add('hidden');
+
+    // Update state
+    state.auditLogs.isLoading = true;
+    state.auditLogs.pagination.page = page;
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('limit', state.auditLogs.pagination.limit);
+
+    // Add filters
+    Object.entries(state.auditLogs.currentFilter).forEach(([key, value]) => {
+      if (value) {
+        params.append(key, value);
+      }
+    });
+
+    // Get auth token
+    const authData = Storage.get(CONFIG.storageKey) || {};
+    const token = authData.token || '';
+
+    // Fetch audit logs
+    fetch(`${CONFIG.auditEndpoint}?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Update state
+      state.auditLogs.isLoading = false;
+
+      if (data.success) {
+        state.auditLogs.logs = data.data.logs;
+        state.auditLogs.pagination = data.data.pagination;
+        state.auditLogs.filters = data.data.filters;
+
+        // Update UI
+        updateAuditTable();
+        updateAuditFilters();
+        updateAuditPagination();
+
+        // Show content or empty state
+        if (state.auditLogs.logs.length > 0) {
+          if (contentEl) contentEl.classList.remove('hidden');
+        } else {
+          if (emptyEl) emptyEl.classList.remove('hidden');
+        }
+      } else {
+        // Show error
+        if (errorEl) {
+          errorEl.textContent = data.message || 'Error loading audit logs';
+          errorEl.classList.remove('hidden');
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error loading audit logs:', error);
+
+      // Update state
+      state.auditLogs.isLoading = false;
+
+      // Show error
+      if (errorEl) {
+        errorEl.textContent = 'Error loading audit logs. Please try again.';
+        errorEl.classList.remove('hidden');
+      }
+    })
+    .finally(() => {
+      // Hide loading
+      if (loadingEl) loadingEl.classList.add('hidden');
+    });
+  }
+
+  // Update audit table
+  function updateAuditTable() {
+    const tableBody = document.getElementById('audit-table-body');
+    if (!tableBody) return;
+
+    // Clear table
+    tableBody.innerHTML = '';
+
+    // Add rows
+    state.auditLogs.logs.forEach(log => {
+      const row = document.createElement('tr');
+
+      // Format timestamp
+      const timestamp = new Date(log.timestamp).toLocaleString();
+
+      // Create content diff preview
+      let contentDiff = '';
+      if (log.elementType === 'system') {
+        contentDiff = `<span class="text-gray-600">${log.newContent}</span>`;
+      } else {
+        // Truncate content for display
+        const oldContent = log.previousContent ? truncateHTML(log.previousContent, 50) : '';
+        const newContent = truncateHTML(log.newContent, 50);
+
+        contentDiff = `
+          <div class="flex flex-col gap-1">
+            ${oldContent ? `<div class="text-red-600 line-through text-xs">${oldContent}</div>` : ''}
+            <div class="text-green-600 text-xs">${newContent}</div>
+          </div>
+        `;
+      }
+
+      // Build row HTML
+      row.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${timestamp}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${log.adminName || 'Unknown'}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${log.filename}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${log.elementType} ${log.elementId ? `(${log.elementId})` : ''}</td>
+        <td class="px-6 py-4 text-sm text-gray-500">${contentDiff}</td>
+      `;
+
+      tableBody.appendChild(row);
+    });
+
+    // Update pagination info
+    const start = (state.auditLogs.pagination.page - 1) * state.auditLogs.pagination.limit + 1;
+    const end = Math.min(start + state.auditLogs.logs.length - 1, state.auditLogs.pagination.total);
+
+    const startEl = document.getElementById('audit-page-start');
+    const endEl = document.getElementById('audit-page-end');
+    const totalEl = document.getElementById('audit-total');
+
+    if (startEl) startEl.textContent = state.auditLogs.logs.length > 0 ? start : 0;
+    if (endEl) endEl.textContent = state.auditLogs.logs.length > 0 ? end : 0;
+    if (totalEl) totalEl.textContent = state.auditLogs.pagination.total;
+  }
+
+  // Update audit filters
+  function updateAuditFilters() {
+    // Update admin filter
+    const adminFilter = document.getElementById('audit-filter-admin');
+    if (adminFilter) {
+      // Save selected value
+      const selectedValue = adminFilter.value;
+
+      // Clear options
+      adminFilter.innerHTML = '<option value="">All Admins</option>';
+
+      // Add options
+      state.auditLogs.filters.adminNames.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        option.selected = name === selectedValue;
+        adminFilter.appendChild(option);
+      });
+    }
+
+    // Update element type filter
+    const typeFilter = document.getElementById('audit-filter-type');
+    if (typeFilter) {
+      // Save selected value
+      const selectedValue = typeFilter.value;
+
+      // Clear options
+      typeFilter.innerHTML = '<option value="">All Types</option>';
+
+      // Add options
+      state.auditLogs.filters.elementTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        option.selected = type === selectedValue;
+        typeFilter.appendChild(option);
+      });
+    }
+
+    // Update file filter
+    const fileFilter = document.getElementById('audit-filter-file');
+    if (fileFilter) {
+      // Save selected value
+      const selectedValue = fileFilter.value;
+
+      // Clear options
+      fileFilter.innerHTML = '<option value="">All Files</option>';
+
+      // Add options
+      state.auditLogs.filters.filenames.forEach(filename => {
+        const option = document.createElement('option');
+        option.value = filename;
+        option.textContent = filename;
+        option.selected = filename === selectedValue;
+        fileFilter.appendChild(option);
+      });
+    }
+
+    // Update date filters
+    const startDateFilter = document.getElementById('audit-filter-start-date');
+    const endDateFilter = document.getElementById('audit-filter-end-date');
+
+    if (startDateFilter && state.auditLogs.currentFilter.startDate) {
+      startDateFilter.value = state.auditLogs.currentFilter.startDate;
+    }
+
+    if (endDateFilter && state.auditLogs.currentFilter.endDate) {
+      endDateFilter.value = state.auditLogs.currentFilter.endDate;
+    }
+  }
+
+  // Update audit pagination
+  function updateAuditPagination() {
+    const paginationControls = document.getElementById('audit-pagination-controls');
+    if (!paginationControls) return;
+
+    // Clear pagination controls
+    paginationControls.innerHTML = '';
+
+    // Don't show pagination if there's only one page
+    if (state.auditLogs.pagination.pages <= 1) return;
+
+    // Add previous button
+    if (state.auditLogs.pagination.page > 1) {
+      const prevButton = document.createElement('button');
+      prevButton.className = 'audit-page-btn px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors';
+      prevButton.dataset.page = state.auditLogs.pagination.page - 1;
+      prevButton.innerHTML = '&laquo; Prev';
+      paginationControls.appendChild(prevButton);
+    }
+
+    // Add page buttons
+    const maxButtons = 5;
+    const halfButtons = Math.floor(maxButtons / 2);
+    let startPage = Math.max(1, state.auditLogs.pagination.page - halfButtons);
+    let endPage = Math.min(state.auditLogs.pagination.pages, startPage + maxButtons - 1);
+
+    // Adjust start page if we're near the end
+    if (endPage - startPage + 1 < maxButtons) {
+      startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+
+    // Add first page button if not included
+    if (startPage > 1) {
+      const firstButton = document.createElement('button');
+      firstButton.className = 'audit-page-btn px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors';
+      firstButton.dataset.page = 1;
+      firstButton.textContent = '1';
+      paginationControls.appendChild(firstButton);
+
+      // Add ellipsis if needed
+      if (startPage > 2) {
+        const ellipsis = document.createElement('span');
+        ellipsis.className = 'px-2 py-1';
+        ellipsis.textContent = '...';
+        paginationControls.appendChild(ellipsis);
+      }
+    }
+
+    // Add page buttons
+    for (let i = startPage; i <= endPage; i++) {
+      const pageButton = document.createElement('button');
+      pageButton.className = `audit-page-btn px-3 py-1 rounded transition-colors ${
+        i === state.auditLogs.pagination.page
+          ? 'bg-indigo-600 text-white'
+          : 'bg-gray-200 hover:bg-gray-300'
+      }`;
+      pageButton.dataset.page = i;
+      pageButton.textContent = i;
+      paginationControls.appendChild(pageButton);
+    }
+
+    // Add last page button if not included
+    if (endPage < state.auditLogs.pagination.pages) {
+      // Add ellipsis if needed
+      if (endPage < state.auditLogs.pagination.pages - 1) {
+        const ellipsis = document.createElement('span');
+        ellipsis.className = 'px-2 py-1';
+        ellipsis.textContent = '...';
+        paginationControls.appendChild(ellipsis);
+      }
+
+      const lastButton = document.createElement('button');
+      lastButton.className = 'audit-page-btn px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors';
+      lastButton.dataset.page = state.auditLogs.pagination.pages;
+      lastButton.textContent = state.auditLogs.pagination.pages;
+      paginationControls.appendChild(lastButton);
+    }
+
+    // Add next button
+    if (state.auditLogs.pagination.page < state.auditLogs.pagination.pages) {
+      const nextButton = document.createElement('button');
+      nextButton.className = 'audit-page-btn px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors';
+      nextButton.dataset.page = state.auditLogs.pagination.page + 1;
+      nextButton.innerHTML = 'Next &raquo;';
+      paginationControls.appendChild(nextButton);
+    }
+  }
+
+  // Apply audit filters
+  function applyAuditFilters() {
+    // Get filter values
+    const adminFilter = document.getElementById('audit-filter-admin');
+    const typeFilter = document.getElementById('audit-filter-type');
+    const fileFilter = document.getElementById('audit-filter-file');
+    const startDateFilter = document.getElementById('audit-filter-start-date');
+    const endDateFilter = document.getElementById('audit-filter-end-date');
+
+    // Update filter state
+    state.auditLogs.currentFilter = {
+      adminName: adminFilter ? adminFilter.value : '',
+      elementType: typeFilter ? typeFilter.value : '',
+      filename: fileFilter ? fileFilter.value : '',
+      startDate: startDateFilter ? startDateFilter.value : '',
+      endDate: endDateFilter ? endDateFilter.value : ''
+    };
+
+    // Reset to first page
+    loadAuditLogs(1);
+  }
+
+  // Reset audit filters
+  function resetAuditFilters() {
+    // Clear filter inputs
+    const adminFilter = document.getElementById('audit-filter-admin');
+    const typeFilter = document.getElementById('audit-filter-type');
+    const fileFilter = document.getElementById('audit-filter-file');
+    const startDateFilter = document.getElementById('audit-filter-start-date');
+    const endDateFilter = document.getElementById('audit-filter-end-date');
+
+    if (adminFilter) adminFilter.value = '';
+    if (typeFilter) typeFilter.value = '';
+    if (fileFilter) fileFilter.value = '';
+    if (startDateFilter) startDateFilter.value = '';
+    if (endDateFilter) endDateFilter.value = '';
+
+    // Reset filter state
+    state.auditLogs.currentFilter = {};
+
+    // Reload logs
+    loadAuditLogs(1);
+  }
+
+  // Helper function to truncate HTML content
+  function truncateHTML(html, maxLength) {
+    if (!html) return '';
+
+    // Create temporary div to parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+
+    // Get text content
+    const text = tempDiv.textContent || tempDiv.innerText || '';
+
+    // Truncate text
+    if (text.length <= maxLength) {
+      return html;
+    }
+
+    return text.substring(0, maxLength) + '...';
   }
 
   // Initialize when DOM is loaded
