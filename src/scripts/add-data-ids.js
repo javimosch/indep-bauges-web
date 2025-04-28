@@ -24,6 +24,7 @@
  *   - Links (a)
  *   - Buttons (button)
  *   - Spans (span)
+ *   - Blockquotes (blockquote)
  *   - Images (img)
  *   - Text-centered divs (div.text-center)
  *
@@ -46,7 +47,7 @@ const isDryRun = args.includes('--dry-run');
 
 // Configuration
 const SECTIONS_DIR = path.join(__dirname, '../sections');
-const TARGET_ELEMENTS = 'h1, h2, h3, h4, h5, h6, p, a, button, span, img, div.text-center';
+const TARGET_ELEMENTS = 'h1, h2, h3, h4, h5, h6, p, a, button, span, blockquote, img, div.text-center';
 const IGNORE_ELEMENTS = [
   // Elements to ignore (e.g., elements that shouldn't be editable)
   'div.container',
@@ -104,7 +105,7 @@ function getSpecificElementType(element) {
 
 // Process a single file
 function processFile(filePath) {
-  console.log(`Processing file: ${filePath}`);
+  console.log(`add-data-ids.js processFile Processing file`, {data:{filePath}});
 
   // Read the file
   const content = fs.readFileSync(filePath, 'utf8');
@@ -148,9 +149,9 @@ function processFile(filePath) {
       return;
     }
 
-    // Skip empty elements or those with only whitespace (unless it's an image)
+    // Skip empty elements or those with only whitespace (unless it's an image or blockquote)
     const textContent = element.textContent.trim();
-    if (!textContent && tagName !== 'img') {
+    if (!textContent && tagName !== 'img' && tagName !== 'blockquote') {
       skippedCount++;
       return;
     }
