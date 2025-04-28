@@ -20,7 +20,7 @@
   };
 
   // Helper modules
-  const { Toast, Storage } = window.AdminHelpers || {};
+  const { Toast, Storage, Api, Modal, Form } = window.AdminHelpers || {};
 
   // Initialize injections manager
   function init() {
@@ -54,43 +54,35 @@
   function showInjectionsManager() {
     console.log('admin-injections.js showInjectionsManager Showing injections manager');
     
-    // Create modal if it doesn't exist
-    let modal = document.getElementById('injections-manager-modal');
-    
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'injections-manager-modal';
-      modal.className = 'fixed inset-0 flex items-center justify-center z-50';
-      
-      modal.innerHTML = `
-        <div class="absolute inset-0 bg-black bg-opacity-50"></div>
-        <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] z-10 overflow-hidden flex flex-col">
-          <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
-            <h3 class="text-xl font-bold">Script & Style Injections Manager</h3>
-            <button id="injections-close-manager" class="text-white hover:text-gray-200">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
+    const modalContent = `
+      <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+      <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] z-10 overflow-hidden flex flex-col">
+        <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+          <h3 class="text-xl font-bold">Script & Style Injections Manager</h3>
+          <button id="injections-close-manager" class="text-white hover:text-gray-200">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-4 overflow-y-auto flex-grow">
+          <div class="flex justify-between items-center mb-4">
+            <div class="text-sm text-gray-500">
+              Manage scripts and styles that will be injected into your site.
+            </div>
+            <button id="injections-add-new" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors">
+              Add New Injection
             </button>
           </div>
-          <div class="px-6 py-4 overflow-y-auto flex-grow">
-            <div class="flex justify-between items-center mb-4">
-              <div class="text-sm text-gray-500">
-                Manage scripts and styles that will be injected into your site.
-              </div>
-              <button id="injections-add-new" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors">
-                Add New Injection
-              </button>
-            </div>
-            <div id="injections-list" class="mt-4">
-              <div class="text-center py-12 text-gray-500">Loading injections...</div>
-            </div>
+          <div id="injections-list" class="mt-4">
+            <div class="text-center py-12 text-gray-500">Loading injections...</div>
           </div>
         </div>
-      `;
-      
-      document.body.appendChild(modal);
-    }
+      </div>
+    `;
+    
+    // Create or show modal
+    Modal.create('injections-manager-modal', modalContent);
     
     // Load injections
     loadInjections();
@@ -104,22 +96,7 @@
       state.isLoading = true;
       updateInjectionsTable();
       
-      const authData = Storage.get(CONFIG.storageKey);
-      
-      if (!authData || !authData.token) {
-        Toast.show('Authentication required', 'error');
-        return;
-      }
-      
-      const response = await fetch(CONFIG.injectionsEndpoint, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authData.token}`
-        }
-      });
-      
-      const result = await response.json();
+      const result = await Api.request(CONFIG.injectionsEndpoint, 'GET', null, CONFIG.storageKey);
       
       if (result.success) {
         state.injections = result.data;
@@ -253,92 +230,72 @@
     state.currentInjection = injection;
     state.isEditing = !!injection;
     
-    // Create editor modal if it doesn't exist
-    let modal = document.getElementById('injection-editor-modal');
+    const editorTitle = state.isEditing ? 'Edit' : 'Add';
+    const scriptPlaceholder = '// JavaScript code\nconsole.log("Hello from injected script!");';
+    const stylePlaceholder = '/* CSS styles */\nbody { background-color: #f0f0f0; }';
+    const placeholderByType = state.currentInjection?.type === 'style' || document.getElementById('injection-type')?.value === 'style' ? 
+      stylePlaceholder : scriptPlaceholder;
     
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'injection-editor-modal';
-      modal.className = 'fixed inset-0 flex items-center justify-center z-50';
-      
-      modal.innerHTML = `
-        <div class="absolute inset-0 bg-black bg-opacity-50"></div>
-        <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] z-10 overflow-hidden flex flex-col">
-          <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
-            <h3 class="text-xl font-bold">
-              <span id="editor-title">${state.isEditing ? 'Edit' : 'Add'} Injection</span>
-            </h3>
-            <button id="injections-close-editor" class="text-white hover:text-gray-200">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
-          </div>
-          <div class="px-6 py-4 overflow-y-auto">
-            <form id="injection-form" class="space-y-4">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label for="injection-name" class="block text-sm font-medium text-gray-700">Name</label>
-                  <input type="text" id="injection-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" 
-                    value="${state.isEditing ? injection.name : ''}" placeholder="Analytics Script" required>
-                </div>
-                <div>
-                  <label for="injection-type" class="block text-sm font-medium text-gray-700">Type</label>
-                  <select id="injection-type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
-                    <option value="script" ${state.isEditing && injection.type === 'script' ? 'selected' : ''}>Script</option>
-                    <option value="style" ${state.isEditing && injection.type === 'style' ? 'selected' : ''}>Style</option>
-                  </select>
-                </div>
-              </div>
-              
+    const modalContent = `
+      <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+      <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] z-10 overflow-hidden flex flex-col">
+        <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+          <h3 class="text-xl font-bold">
+            <span id="editor-title">${editorTitle} Injection</span>
+          </h3>
+          <button id="injections-close-editor" class="text-white hover:text-gray-200">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-4 overflow-y-auto">
+          <form id="injection-form" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="injection-location" class="block text-sm font-medium text-gray-700">Injection Location</label>
-                <select id="injection-location" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
-                  <option value="before-body-close" ${!state.isEditing || (state.isEditing && injection.location === 'before-body-close') ? 'selected' : ''}>Before Body Close</option>
-                  <option value="before-head-close" ${state.isEditing && injection.location === 'before-head-close' ? 'selected' : ''}>Before Head Close</option>
+                <label for="injection-name" class="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" id="injection-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" 
+                  value="${state.isEditing ? injection.name : ''}" placeholder="Analytics Script" required>
+              </div>
+              <div>
+                <label for="injection-type" class="block text-sm font-medium text-gray-700">Type</label>
+                <select id="injection-type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                  <option value="script" ${state.isEditing && injection.type === 'script' ? 'selected' : ''}>Script</option>
+                  <option value="style" ${state.isEditing && injection.type === 'style' ? 'selected' : ''}>Style</option>
                 </select>
               </div>
-              
-              <div>
-                <label for="injection-code" class="block text-sm font-medium text-gray-700">Code</label>
-                <textarea id="injection-code" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 font-mono h-64" 
-                  placeholder="${state.currentInjection?.type === 'style' || document.getElementById('injection-type')?.value === 'style' ? 
-                    '/* CSS styles */\nbody { background-color: #f0f0f0; }' : 
-                    '// JavaScript code\nconsole.log("Hello from injected script!");'}" 
-                  required>${state.isEditing ? injection.code : ''}</textarea>
-              </div>
-              
-              <div class="flex justify-end">
-                <button type="button" id="injections-close-editor" class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2 hover:bg-gray-400 transition-colors">
-                  Cancel
-                </button>
-                <button type="button" id="injections-save" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors">
-                  Save Injection
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+            
+            <div>
+              <label for="injection-location" class="block text-sm font-medium text-gray-700">Injection Location</label>
+              <select id="injection-location" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                <option value="before-body-close" ${!state.isEditing || (state.isEditing && injection.location === 'before-body-close') ? 'selected' : ''}>Before Body Close</option>
+                <option value="before-head-close" ${state.isEditing && injection.location === 'before-head-close' ? 'selected' : ''}>Before Head Close</option>
+              </select>
+            </div>
+            
+            <div>
+              <label for="injection-code" class="block text-sm font-medium text-gray-700">Code</label>
+              <textarea id="injection-code" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 font-mono h-64" 
+                placeholder="${placeholderByType}" 
+                required>${state.isEditing ? injection.code : ''}</textarea>
+            </div>
+            
+            <div class="flex justify-end">
+              <button type="button" id="injections-close-editor" class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2 hover:bg-gray-400 transition-colors">
+                Cancel
+              </button>
+              <button type="button" id="injections-save" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors">
+                Save Injection
+              </button>
+            </div>
+          </form>
         </div>
-      `;
-      
-      document.body.appendChild(modal);
-    } else {
-      // Update existing modal
-      const titleEl = document.getElementById('editor-title');
-      const nameEl = document.getElementById('injection-name');
-      const typeEl = document.getElementById('injection-type');
-      const locationEl = document.getElementById('injection-location');
-      const codeEl = document.getElementById('injection-code');
-      
-      if (titleEl) titleEl.textContent = `${state.isEditing ? 'Edit' : 'Add'} Injection`;
-      if (nameEl) nameEl.value = state.isEditing ? injection.name : '';
-      if (typeEl) typeEl.value = state.isEditing ? injection.type : 'script';
-      if (locationEl) locationEl.value = state.isEditing ? injection.location : 'before-body-close';
-      if (codeEl) codeEl.value = state.isEditing ? injection.code : '';
-      
-      // Show the modal
-      modal.style.display = 'flex';
-    }
+      </div>
+    `;
+    
+    // Create or show modal
+    Modal.create('injection-editor-modal', modalContent);
     
     // Setup type change handler to update placeholder
     const typeEl = document.getElementById('injection-type');
@@ -347,11 +304,7 @@
     if (typeEl && codeEl) {
       typeEl.addEventListener('change', function() {
         if (codeEl.value === '') { // Only update if empty
-          if (typeEl.value === 'script') {
-            codeEl.placeholder = '// JavaScript code\nconsole.log("Hello from injected script!");';
-          } else {
-            codeEl.placeholder = '/* CSS styles */\nbody { background-color: #f0f0f0; }';
-          }
+          codeEl.placeholder = typeEl.value === 'script' ? scriptPlaceholder : stylePlaceholder;
         }
       });
     }
@@ -361,10 +314,7 @@
   function closeInjectionEditor() {
     console.log('admin-injections.js closeInjectionEditor Closing injection editor');
     
-    const modal = document.getElementById('injection-editor-modal');
-    if (modal) {
-      modal.style.display = 'none';
-    }
+    Modal.close('injection-editor-modal');
     
     state.currentInjection = null;
     state.isEditing = false;
@@ -374,11 +324,7 @@
   function closeInjectionsManager() {
     console.log('admin-injections.js closeInjectionsManager Closing injections manager');
     
-    const modal = document.getElementById('injections-manager-modal');
-    if (modal) {
-      modal.style.display = 'none';
-    }
-    
+    Modal.close('injections-manager-modal');
     closeInjectionEditor();
   }
 
@@ -386,61 +332,35 @@
   async function saveInjection() {
     console.log('admin-injections.js saveInjection Saving injection');
     
-    const nameEl = document.getElementById('injection-name');
-    const typeEl = document.getElementById('injection-type');
-    const locationEl = document.getElementById('injection-location');
-    const codeEl = document.getElementById('injection-code');
+    // Get form values
+    const formResult = Form.getValues(['injection-name', 'injection-type', 'injection-location', 'injection-code']);
     
-    if (!nameEl || !typeEl || !locationEl || !codeEl) {
-      Toast.show('Error: Form elements not found', 'error');
-      return;
-    }
-    
-    const name = nameEl.value.trim();
-    const type = typeEl.value;
-    const location = locationEl.value;
-    const code = codeEl.value;
-    
-    if (!name || !type || !location || !code) {
+    if (!formResult.isValid) {
       Toast.show('All fields are required', 'warning');
       return;
     }
     
+    const { values } = formResult;
+    const adminName = Storage.get(CONFIG.adminNameKey) || 'unknown';
+    
     try {
-      const authData = Storage.get(CONFIG.storageKey);
-      const adminName = Storage.get(CONFIG.adminNameKey) || 'unknown';
-      
-      if (!authData || !authData.token) {
-        Toast.show('Authentication required', 'error');
-        return;
-      }
-      
-      let url = CONFIG.injectionsEndpoint;
+      let endpoint = CONFIG.injectionsEndpoint;
       let method = 'POST';
       
       if (state.isEditing) {
-        url = `${CONFIG.injectionsEndpoint}/${state.currentInjection.injectionId}`;
+        endpoint = `${CONFIG.injectionsEndpoint}/${state.currentInjection.injectionId}`;
         method = 'PUT';
       }
       
       const data = {
-        name,
-        type,
-        code,
-        location,
+        name: values['injection-name'],
+        type: values['injection-type'],
+        code: values['injection-code'],
+        location: values['injection-location'],
         adminName
       };
       
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authData.token}`
-        },
-        body: JSON.stringify(data)
-      });
-      
-      const result = await response.json();
+      const result = await Api.request(endpoint, method, data, CONFIG.storageKey);
       
       if (result.success) {
         Toast.show(`Injection ${state.isEditing ? 'updated' : 'created'} successfully`, 'success');
@@ -477,22 +397,7 @@
     }
     
     try {
-      const authData = Storage.get(CONFIG.storageKey);
-      
-      if (!authData || !authData.token) {
-        Toast.show('Authentication required', 'error');
-        return;
-      }
-      
-      const response = await fetch(`${CONFIG.injectionsEndpoint}/${injectionId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authData.token}`
-        }
-      });
-      
-      const result = await response.json();
+      const result = await Api.request(`${CONFIG.injectionsEndpoint}/${injectionId}`, 'DELETE', null, CONFIG.storageKey);
       
       if (result.success) {
         Toast.show('Injection deleted successfully', 'success');
@@ -518,27 +423,13 @@
         return;
       }
       
-      const authData = Storage.get(CONFIG.storageKey);
       const adminName = Storage.get(CONFIG.adminNameKey) || 'unknown';
+      const data = {
+        isActive: !injection.isActive,
+        adminName
+      };
       
-      if (!authData || !authData.token) {
-        Toast.show('Authentication required', 'error');
-        return;
-      }
-      
-      const response = await fetch(`${CONFIG.injectionsEndpoint}/${injectionId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authData.token}`
-        },
-        body: JSON.stringify({
-          isActive: !injection.isActive,
-          adminName
-        })
-      });
-      
-      const result = await response.json();
+      const result = await Api.request(`${CONFIG.injectionsEndpoint}/${injectionId}`, 'PUT', data, CONFIG.storageKey);
       
       if (result.success) {
         Toast.show(`Injection ${injection.isActive ? 'deactivated' : 'activated'} successfully`, 'success');

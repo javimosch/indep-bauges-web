@@ -280,9 +280,142 @@ const StorageUtils = (function() {
   };
 })();
 
+// API utilities
+const ApiUtils = (function() {
+  // Make an authenticated API request
+  async function makeAuthenticatedRequest(endpoint, method = 'GET', data = null, authTokenKey = 'admin_auth_token') {
+    console.log(`admin-helpers.js ApiUtils.makeAuthenticatedRequest Making ${method} request to ${endpoint}`, { data });
+    
+    try {
+      const authData = StorageUtils.get(authTokenKey);
+      
+      if (!authData || !authData.token) {
+        ToastSystem.show('Authentication required', 'error');
+        return { success: false, message: 'Authentication required' };
+      }
+      
+      const requestOptions = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authData.token}`
+        }
+      };
+      
+      if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+        requestOptions.body = JSON.stringify(data);
+      }
+      
+      const response = await fetch(endpoint, requestOptions);
+      const result = await response.json();
+      
+      return result;
+    } catch (err) {
+      console.log(`admin-helpers.js ApiUtils.makeAuthenticatedRequest Error making request`, {message: err.message, stack: err.stack});
+      return { success: false, message: `Error: ${err.message}` };
+    }
+  }
+  
+  // Public API
+  return {
+    request: makeAuthenticatedRequest
+  };
+})();
+
+// Modal utilities
+const ModalUtils = (function() {
+  // Create or show a modal
+  function createOrShowModal(id, content, options = {}) {
+    console.log(`admin-helpers.js ModalUtils.createOrShowModal Creating/showing modal ${id}`);
+    
+    let modal = document.getElementById(id);
+    
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = id;
+      modal.className = options.className || 'fixed inset-0 flex items-center justify-center z-50';
+      
+      modal.innerHTML = content;
+      document.body.appendChild(modal);
+    } else {
+      // Just show it
+      modal.style.display = options.display || 'flex';
+    }
+    
+    return modal;
+  }
+  
+  // Close a modal
+  function closeModal(id) {
+    console.log(`admin-helpers.js ModalUtils.closeModal Closing modal ${id}`);
+    
+    const modal = document.getElementById(id);
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+  
+  // Public API
+  return {
+    create: createOrShowModal,
+    close: closeModal
+  };
+})();
+
+// Form utilities
+const FormUtils = (function() {
+  // Get form values
+  function getFormValues(fieldIds) {
+    const values = {};
+    let isValid = true;
+    let missingFields = [];
+    
+    fieldIds.forEach(fieldId => {
+      const element = document.getElementById(fieldId);
+      if (!element) {
+        isValid = false;
+        return;
+      }
+      
+      const value = element.type === 'checkbox' ? element.checked : element.value.trim();
+      values[fieldId] = value;
+      
+      if (!value && element.hasAttribute('required')) {
+        isValid = false;
+        missingFields.push(fieldId);
+      }
+    });
+    
+    return { values, isValid, missingFields };
+  }
+  
+  // Set form values
+  function setFormValues(values) {
+    Object.keys(values).forEach(fieldId => {
+      const element = document.getElementById(fieldId);
+      if (element) {
+        if (element.type === 'checkbox') {
+          element.checked = !!values[fieldId];
+        } else {
+          element.value = values[fieldId] || '';
+        }
+      }
+    });
+  }
+  
+  // Public API
+  return {
+    getValues: getFormValues,
+    setValues: setFormValues
+  };
+})();
+
 // Export modules
 window.AdminHelpers = {
   Toast: ToastSystem,
   EditorStyles: EditorStyles,
-  Storage: StorageUtils
+  Storage: StorageUtils,
+  Api: ApiUtils,
+  Modal: ModalUtils,
+  Form: FormUtils
 };
