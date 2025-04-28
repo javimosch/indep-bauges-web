@@ -16,7 +16,8 @@
     authEndpoint: '/api/auth',
     editableSelectors: 'h1, h2, h3, h4, h5, h6, p, a, button',
     storageKey: 'admin_auth_token',
-    authTokenExpiry: 24 * 60 * 60 * 1000, // 24 hours
+    authTokenExpiry: 24 * 60 * 60 * 1000, // 24 hours,
+    toastDuration: 3000, // Toast notification duration in ms
   };
 
   // State
@@ -32,6 +33,123 @@
   function init() {
     checkAuthentication();
     setupEventListeners();
+    setupToastContainer();
+  }
+
+  // Create toast container
+  function setupToastContainer() {
+    // Remove existing toast container if present
+    const existingContainer = document.getElementById('admin-toast-container');
+    if (existingContainer) {
+      existingContainer.remove();
+    }
+
+    // Create toast container
+    const toastContainer = document.createElement('div');
+    toastContainer.id = 'admin-toast-container';
+    toastContainer.className = 'fixed bottom-4 right-4 z-[9999] flex flex-col gap-2';
+    document.body.appendChild(toastContainer);
+
+    // Add toast styles
+    const toastStyles = document.createElement('style');
+    toastStyles.id = 'admin-toast-styles';
+    toastStyles.textContent = `
+      .admin-toast {
+        padding: 12px 16px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        color: white;
+        font-size: 14px;
+        max-width: 300px;
+        margin-top: 8px;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .admin-toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      .admin-toast-success {
+        background-color: #10B981;
+      }
+      .admin-toast-error {
+        background-color: #EF4444;
+      }
+      .admin-toast-info {
+        background-color: #3B82F6;
+      }
+      .admin-toast-close {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 16px;
+        margin-left: 8px;
+        opacity: 0.7;
+      }
+      .admin-toast-close:hover {
+        opacity: 1;
+      }
+    `;
+    document.head.appendChild(toastStyles);
+  }
+
+  // Show toast notification
+  function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('admin-toast-container');
+    if (!toastContainer) return;
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `admin-toast admin-toast-${type}`;
+
+    // Create message element
+    const messageEl = document.createElement('span');
+    messageEl.textContent = message;
+    toast.appendChild(messageEl);
+
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'admin-toast-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', () => {
+      removeToast(toast);
+    });
+    toast.appendChild(closeBtn);
+
+    // Add toast to container
+    toastContainer.appendChild(toast);
+
+    // Trigger animation
+    setTimeout(() => {
+      toast.classList.add('show');
+    }, 10);
+
+    // Auto-remove after duration
+    setTimeout(() => {
+      removeToast(toast);
+    }, CONFIG.toastDuration);
+
+    return toast;
+  }
+
+  // Remove toast
+  function removeToast(toast) {
+    if (!toast) return;
+
+    // Trigger hide animation
+    toast.classList.remove('show');
+
+    // Remove after animation completes
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
   }
 
   // Check if user is already authenticated
@@ -132,12 +250,12 @@
 
           createAdminBar();
         } else {
-          alert('Authentication failed: ' + (data.message || 'Invalid password'));
+          showToast('Authentication failed: ' + (data.message || 'Invalid password'), 'error');
         }
       })
       .catch(error => {
         console.error('Authentication error:', error);
-        alert('Authentication error. Please try again.');
+        showToast('Authentication error. Please try again.', 'error');
       });
     }
   }
@@ -249,7 +367,7 @@
     if (nameInput) {
       state.adminName = nameInput.value.trim();
       localStorage.setItem('admin_name', state.adminName);
-      alert(`Name saved: ${state.adminName}`);
+      showToast(`Name saved: ${state.adminName}`, 'success');
     }
   }
 
@@ -507,14 +625,14 @@
       }
 
       // Show success message
-      alert('Content updated successfully!');
+      showToast('Content updated successfully!', 'success');
 
       // Close editor
       closeEditor();
     })
     .catch(error => {
       console.error('Error saving changes:', error);
-      alert('Error saving changes. Please try again.');
+      showToast('Error saving changes. Please try again.', 'error');
     });
   }
 
