@@ -10,6 +10,7 @@
     "dev": "npx nodemon --exec 'node src/server.js' --watch src -e js,html",
     "sync-from-mongo": "node src/scripts/sync-mongo.js --from-mongo",
     "sync-to-mongo": "node src/scripts/sync-mongo.js --to-mongo",
+    "add-data-ids": "node src/scripts/add-data-ids.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
