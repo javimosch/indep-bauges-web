@@ -96,14 +96,14 @@
               <label class="label">
                 <span class="label-text text-bauges-dark/80 font-medium" data-id="contact-span-d84bae">Nom complet *</span>
               </label>
-              <input type="text" placeholder="Votre nom" class="input input-bordered focus:border-bauges-primary" required="">
+              <input id="contactName" type="text" placeholder="Votre nom" class="input input-bordered focus:border-bauges-primary" required="">
             </div>
 
             <div class="form-control">
               <label class="label">
                 <span class="label-text text-bauges-dark/80 font-medium" data-id="contact-span-280093">Email *</span>
               </label>
-              <input type="email" placeholder="votre@email.com" class="input input-bordered focus:border-bauges-primary" required="">
+              <input id="contactEmail" type="email" placeholder="votre@email.com" class="input input-bordered focus:border-bauges-primary" required="">
             </div>
           </div>
 
@@ -112,14 +112,14 @@
               <label class="label">
                 <span class="label-text text-bauges-dark/80 font-medium" data-id="contact-span-301dc8">Téléphone</span>
               </label>
-              <input type="tel" placeholder="06 XX XX XX XX" class="input input-bordered focus:border-bauges-primary">
+              <input id="contactPhone" type="tel" placeholder="06 XX XX XX XX" class="input input-bordered focus:border-bauges-primary">
             </div>
 
             <div class="form-control">
               <label class="label">
                 <span class="label-text text-bauges-dark/80 font-medium" data-id="contact-span-fbb606">Sujet *</span>
               </label>
-              <select class="select select-bordered focus:border-bauges-primary" required="">
+              <select id="contactSubject" class="select select-bordered focus:border-bauges-primary" required="">
                 <option value="" disabled="" selected="">Sélectionnez un sujet</option>
                 <option value="adhesion">Demande d'adhésion</option>
                 <option value="services">Renseignements sur nos services</option>
@@ -134,7 +134,7 @@
             <label class="label">
               <span class="label-text text-bauges-dark/80 font-medium" data-id="contact-span-44f689">Message *</span>
             </label>
-            <textarea class="textarea textarea-bordered h-32 focus:border-bauges-primary" placeholder="Votre message" required=""></textarea>
+            <textarea id="contactMessage" class="textarea textarea-bordered h-32 focus:border-bauges-primary" placeholder="Votre message" required=""></textarea>
           </div>
 
           <div class="form-control">
@@ -146,7 +146,7 @@
 
           <div class="form-control">
             <label class="label cursor-pointer justify-start gap-2">
-              <input type="checkbox" class="checkbox checkbox-primary" required="">
+              <input id="contactNewsletter" type="checkbox" class="checkbox checkbox-primary" required="">
               <span class="label-text text-bauges-dark/80" data-id="contact-span-a750dc">J'accepte que mes données soient traitées conformément à la politique de confidentialité *</span>
             </label>
           </div>

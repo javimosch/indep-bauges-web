@@ -23,6 +23,59 @@ const { saveSectionToMongo, saveAuditLog, syncFromMongo, initializeMongo } = req
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(express.json());
+
+// Proxy endpoint (NocoDB)
+app.all('/proxy/:url(*)', async (req, res) => {
+  const axios = require('axios')
+  try {
+    const targetUrl = req.params.url;
+
+    // Validate URL
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      return res.status(400).json({ error: 'Invalid URL: Must include http:// or https://' });
+    }
+
+    const targetHeaders =  {
+      'xc-token': process.env.NOCODB_TOKEN
+    }
+
+    if(!req.url.includes('noco')){
+      return res.status(404).send('Not found');
+    }
+
+    console.debug('Target headers:', {
+      method: req.method,
+      url: targetUrl,
+      headers: targetHeaders,
+      body: req.body
+    });
+
+    // Forward the request
+    const response = await axios({
+      method: req.method,
+      url: targetUrl,
+      headers: targetHeaders,
+      data: req.body,
+      // Prevent axios from throwing on non-2xx status codes
+      validateStatus: () => true
+    });
+
+    console.debug('Response headers:', response.headers);
+
+    // Forward response headers
+    Object.entries(response.headers).forEach(([key, value]) => {
+      res.setHeader(key, value);
+    });
+
+    // Send response
+    res.status(response.status).send(response.data);
+  } catch (error) {
+    console.error('Proxy error:', error.message);
+    res.status(500).json({ error: 'Proxy request failed' });
+  }
+});
+
 // Admin configuration
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123456'; // Default for development
 const JWT_SECRET = process.env.JWT_SECRET || 'indep-bauges-secret-key'; // Default for development
@@ -65,7 +118,7 @@ if (!fs.existsSync(indexPath)) {
 app.use(express.static(distPath));
 
 //target /src/public folder
-app.use(express.static(path.join(process.cwd(),'src', 'public')));
+app.use(express.static(path.join(process.cwd(), 'src', 'public')));
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {

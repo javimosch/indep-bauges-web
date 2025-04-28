@@ -1,14 +1,20 @@
-<!DOCTYPE html><html lang="fr" data-theme="bauges" class="scroll-smooth"><head>
+<!DOCTYPE html>
+<html lang="fr" data-theme="bauges" class="scroll-smooth">
+
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Include the head.html content here -->
   <!-- START head.html -->
   <title>Les Indép'en Bauges - Association de Professionnels dans le Massif des Bauges</title>
-  <meta name="description" content="Association d'entrepreneurs indépendants basés dans le Massif des Bauges. Coopération, partage et entraide entre professionnels locaux.">
+  <meta name="description"
+    content="Association d'entrepreneurs indépendants basés dans le Massif des Bauges. Coopération, partage et entraide entre professionnels locaux.">
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&amp;family=Playfair+Display:wght@400;600;700&amp;display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&amp;family=Playfair+Display:wght@400;600;700&amp;display=swap"
+    rel="stylesheet">
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -78,6 +84,7 @@
   </style>
   <!-- END head.html -->
 </head>
+
 <body class="bg-bauges-light text-bauges-dark">
   <!-- This is a guide for how to assemble the modular components -->
 
@@ -104,5 +111,49 @@
   <script src="/scripts/admin-injections.js"></script>
   <script src="/scripts/admin.js"></script>
 
+  <script>
 
-</body></html>
+    document.querySelector('[data-id="contact-submit-btn"').onclick = function (e) {
+      e.preventDefault();
+      createRecord({
+        name: document.getElementById('contactName').value,
+        email: document.getElementById('contactEmail').value,
+        phone: document.getElementById('contactPhone').value,
+        subject: document.getElementById('contactSubject').value,
+        message: document.getElementById('contactMessage').value,
+        newsletter: document.getElementById('contactNewsletter').checked
+      });
+    };
+
+
+    async function createRecord(data) {
+
+      const url = '/proxy/https://nocodb.coolify.intrane.fr/api/v2/tables/mhr2kdd5ed5jtz8/records';
+      const token = '_NOCO_';
+
+      try {
+        const response = await window.fetch(url, {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'xc-token': token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error creating record:', error);
+        throw error;
+      }
+    }
+  </script>
+
+</body>
+
+</html>
