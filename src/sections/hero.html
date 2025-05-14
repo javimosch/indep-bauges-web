@@ -51,18 +51,15 @@
   <div class="absolute top-0 right-0 w-64 h-64 bg-bauges-accent opacity-10 rounded-bl-full"></div>
   <div class="absolute bottom-0 left-0 w-48 h-48 bg-bauges-primary opacity-10 rounded-tr-full"></div>
   
-  <!-- Logo stamp -->  
-  <div class="absolute right-[-12rem] md:right-[-12rem] lg:right-4 xl:right-12 top-1/2 transform -translate-y-1/2 pointer-events-none" data-id="hero-logo-stamp-container">
-    <div class="logo-stamp relative w-64 h-64 md:w-80 md:h-80 lg:w-80 lg:h-80 bg-white/5 backdrop-blur-sm rounded-full flex items-center justify-center shadow-xl">
-      <div class="absolute inset-3 border-4 border-white/10 rounded-full"></div>
-      <img 
-        src="https://res.cloudinary.com/savoietech/image/upload/v1747196470/les-indep-bauges/logo.png" 
-        alt="Les Indep' en Bauges Logo" 
-        class="w-3/4 h-3/4 object-contain" 
-        data-id="hero-logo-stamp-image"
-      />
-      <div class="absolute inset-0 border border-white/20 rounded-full"></div>
-    </div>
+  <!-- Logo watermark (bottom-right, subtle) -->
+  <div class="hidden sm:block absolute bottom-6 right-6 pointer-events-none z-10" data-id="hero-logo-stamp-container">
+    <img 
+      src="https://res.cloudinary.com/savoietech/image/upload/v1747196470/les-indep-bauges/logo.png" 
+      alt="Les Indep' en Bauges Logo" 
+      class="w-32 h-32 md:w-40 md:h-40 opacity-60 grayscale filter blur-[1px] drop-shadow-lg select-none"
+      style="user-drag: none;"
+      data-id="hero-logo-stamp-image"
+    />
   </div>
 </section>
 </body></html>
