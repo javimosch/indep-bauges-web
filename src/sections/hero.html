@@ -1,4 +1,24 @@
-<html><head></head><body><section id="hero" class="relative min-h-[90vh] bg-mountain flex items-center">
+<html><head></head><body>
+<!-- Add animation keyframes style -->
+<style>
+  @keyframes float {
+    0% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-5px) rotate(1deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 0.7; }
+    50% { opacity: 0.9; }
+    100% { opacity: 0.7; }
+  }
+  
+  .logo-stamp {
+    animation: float 6s ease-in-out infinite, pulse 4s ease-in-out infinite;
+  }
+</style>
+
+<section id="hero" class="relative min-h-[90vh] bg-mountain flex items-center overflow-hidden">
   <div class="container mx-auto px-4 py-20 text-white">
     <div class="max-w-3xl">
       <h1 class="mb-6 text-4xl md:text-5xl lg:text-6xl font-bold font-display leading-tight text-shadow" data-id="hero-title">Ensemble pour <span class="text-bauges-accent" data-id="hero-span-43e1e5">entreprendre</span> dans le Massif des Bauges
@@ -30,5 +50,19 @@
   <!-- Decorative elements -->
   <div class="absolute top-0 right-0 w-64 h-64 bg-bauges-accent opacity-10 rounded-bl-full"></div>
   <div class="absolute bottom-0 left-0 w-48 h-48 bg-bauges-primary opacity-10 rounded-tr-full"></div>
+  
+  <!-- Logo stamp -->  
+  <div class="absolute right-[-12rem] md:right-[-12rem] lg:right-4 xl:right-12 top-1/2 transform -translate-y-1/2 pointer-events-none" data-id="hero-logo-stamp-container">
+    <div class="logo-stamp relative w-64 h-64 md:w-80 md:h-80 lg:w-80 lg:h-80 bg-white/5 backdrop-blur-sm rounded-full flex items-center justify-center shadow-xl">
+      <div class="absolute inset-3 border-4 border-white/10 rounded-full"></div>
+      <img 
+        src="https://res.cloudinary.com/savoietech/image/upload/v1747196470/les-indep-bauges/logo.png" 
+        alt="Les Indep' en Bauges Logo" 
+        class="w-3/4 h-3/4 object-contain" 
+        data-id="hero-logo-stamp-image"
+      />
+      <div class="absolute inset-0 border border-white/20 rounded-full"></div>
+    </div>
+  </div>
 </section>
 </body></html>
