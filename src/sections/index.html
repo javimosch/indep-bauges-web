@@ -113,17 +113,61 @@
 
   <script>
 
-    document.querySelector('[data-id="contact-submit-btn"').onclick = function (e) {
+    // Toast logic
+    function showToast(message, type = 'success') {
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.position = 'fixed';
+        container.style.top = '2rem';
+        container.style.right = '2rem';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+      }
+      const toast = document.createElement('div');
+      toast.textContent = message;
+      toast.className = `rounded px-4 py-3 mb-2 shadow-lg text-white font-semibold transition-opacity duration-500 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+      toast.style.opacity = '1';
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 500);
+      }, 3500);
+    }
+
+    document.querySelector('[data-id="contact-submit-btn"]').onclick = async function (e) {
       e.preventDefault();
-      createRecord({
+      const submitBtn = this;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Envoi...';
+      const data = {
         name: document.getElementById('contactName').value,
         email: document.getElementById('contactEmail').value,
         phone: document.getElementById('contactPhone').value,
         subject: document.getElementById('contactSubject').value,
         message: document.getElementById('contactMessage').value,
         newsletter: document.getElementById('contactNewsletter').checked
-      });
+      };
+      try {
+        await createRecord(data);
+        // Clear fields
+        document.getElementById('contactName').value = '';
+        document.getElementById('contactEmail').value = '';
+        document.getElementById('contactPhone').value = '';
+        document.getElementById('contactSubject').selectedIndex = 0;
+        document.getElementById('contactMessage').value = '';
+        document.getElementById('contactNewsletter').checked = false;
+        showToast('Message envoyé avec succès !', 'success');
+      } catch (err) {
+        showToast("Une erreur s'est produite lors de l'envoi du message.", 'error');
+        console.log('index.html contact-submit-btn createRecord', {message: err.message, stack: err.stack});
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Envoyer';
+      }
     };
+
 
 
     async function createRecord(data) {

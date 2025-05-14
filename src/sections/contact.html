@@ -90,7 +90,7 @@
       <div class="lg:col-span-3 bg-bauges-light p-8 rounded-xl shadow-lg">
         <h3 class="text-2xl font-bold text-bauges-primary mb-6 font-display" data-id="contact-form-title">Envoyez-nous un message</h3>
 
-        <form class="space-y-4">
+        <form id="contactForm" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="form-control">
               <label class="label">
@@ -153,6 +153,8 @@
 
           <button type="submit" class="btn btn-primary text-white" data-id="contact-submit-btn">Envoyer</button>
         </form>
+        <!-- Toast Container -->
+        <div id="toast-container" style="position: fixed; top: 2rem; right: 2rem; z-index: 9999;"></div>
       </div>
     </div>
 
@@ -163,4 +165,58 @@
     </div>
   </div>
 </section>
+<script>
+// Toast logic
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.className = `rounded px-4 py-3 mb-2 shadow-lg text-white font-semibold transition-opacity duration-500 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+  toast.style.opacity = '1';
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 500);
+  }, 3500);
+}
+
+// Contact form logic
+const contactForm = document.getElementById('contactForm');
+if (contactForm) {
+  contactForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const submitBtn = contactForm.querySelector('[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Envoi...';
+    try {
+      // Collect data
+      const data = {
+        name: document.getElementById('contactName')?.value || '',
+        email: document.getElementById('contactEmail')?.value || '',
+        phone: document.getElementById('contactPhone')?.value || '',
+        subject: document.getElementById('contactSubject')?.value || '',
+        message: document.getElementById('contactMessage')?.value || '',
+        newsletter: document.getElementById('contactNewsletter')?.checked || false,
+      };
+      // Send request (adapt URL as needed)
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Erreur lors de l\'envoi.');
+      // Success: clear form
+      contactForm.reset();
+      showToast('Message envoyé avec succès !', 'success');
+    } catch (err) {
+      showToast("Une erreur s'est produite lors de l'envoi du message.", 'error');
+      console.log('contact.html contactForm submit error', { message: err.message, stack: err.stack });
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Envoyer';
+    }
+  });
+}
+</script>
 </body></html>
