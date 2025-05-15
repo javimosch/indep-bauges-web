@@ -7,7 +7,7 @@
     "build": "node src/scripts/concat.js",
     "serve": "node src/server.js",
     "start": "npm run build && npm run serve",
-    "dev": "npx nodemon --exec 'node src/server.js' --watch src -e js,html",
+    "dev": "npx nodemon --exec 'node src/server.js' --watch src -e js,html --ignore src/sections --ignore dist",
     "sync-from-mongo": "node src/scripts/sync-mongo.js --from-mongo",
     "sync-to-mongo": "node src/scripts/sync-mongo.js --to-mongo",
     "add-data-ids": "node src/scripts/add-data-ids.js",

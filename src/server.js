@@ -18,6 +18,7 @@ const mongoose = require('mongoose');
 // MongoDB connection and models
 const connectDB = require('./db/mongoose');
 const { saveSectionToMongo, saveAuditLog, syncFromMongo, initializeMongo } = require('./db/sync');
+const { syncFromMongoAtBootstrap } = require('./services/bootstrapSync');
 
 // Create Express app
 const app = express();
@@ -488,7 +489,42 @@ app.get('/', (req, res) => {
 });
 
 // Start the server
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-  console.log(`Serving files from: ${distPath}`);
-});
+// Initialize server and sync data from MongoDB
+const startServer = async () => {
+  try {
+    // Connect to MongoDB
+    const connected = await connectDB();
+    
+    if (connected) {
+      // Sync data from MongoDB at bootstrap
+      try {
+        await syncFromMongoAtBootstrap();
+        console.log('server.js startServer', { message: 'MongoDB sync completed at bootstrap' });
+      } catch (error) {
+        console.log('server.js startServer syncFromMongoAtBootstrap error', {
+          message: error.message,
+          stack: error.stack
+        });
+        // Continue server startup even if sync fails
+        console.log('server.js startServer', { message: 'Continuing server startup despite sync error' });
+      }
+    } else {
+      console.log('server.js startServer', { message: 'MongoDB not connected, skipping bootstrap sync' });
+    }
+    
+    // Start the server
+    app.listen(PORT, () => {
+      console.log(`Server running at http://localhost:${PORT}`);
+      console.log(`Serving files from: ${distPath}`);
+    });
+  } catch (error) {
+    console.log('server.js startServer error', {
+      message: error.message,
+      stack: error.stack
+    });
+    process.exit(1);
+  }
+};
+
+// Start the server
+startServer();
