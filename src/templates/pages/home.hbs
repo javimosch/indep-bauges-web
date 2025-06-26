@@ -1,0 +1,39 @@
+{{!-- Home page template with sections --}}
+{{#if page.sections}}
+  {{#each page.sections}}
+    {{#if this.visible}}
+      <div class="home-section" data-section="{{@key}}" data-order="{{this.order}}" data-id="home-section-{{@key}}">
+        {{{this.content}}}
+      </div>
+    {{/if}}
+  {{/each}}
+{{else}}
+  {{!-- Fallback content if no sections --}}
+  <section class="py-20 bg-bauges-light">
+    <div class="container mx-auto px-4 text-center">
+      <h1 class="text-4xl md:text-6xl font-bold font-display text-bauges-primary mb-6" data-id="home-title">
+        {{title}}
+      </h1>
+      <p class="text-xl text-bauges-dark/80 max-w-2xl mx-auto mb-8" data-id="home-description">
+        {{description}}
+      </p>
+      <div class="prose max-w-none" data-id="home-content">
+        {{{content}}}
+      </div>
+    </div>
+  </section>
+{{/if}}
+
+{{!-- Add custom CSS for home page if needed --}}
+{{#if page.settings.customCSS}}
+<style>
+{{{page.settings.customCSS}}}
+</style>
+{{/if}}
+
+{{!-- Add custom JavaScript for home page if needed --}}
+{{#if page.settings.customJS}}
+<script>
+{{{page.settings.customJS}}}
+</script>
+{{/if}}

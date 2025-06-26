@@ -13,6 +13,9 @@
     "add-data-ids": "node src/scripts/add-data-ids.js",
     "add-data-ids:dry": "node src/scripts/add-data-ids.js --dry-run",
     "create-test-pages": "node test-pages.js",
+    "migrate-home": "node migrate-home.js",
+    "migrate-home:status": "node migrate-home.js --status",
+    "migrate-home:rollback": "node migrate-home.js --rollback",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

@@ -208,7 +208,8 @@ router.get('/meta/templates', authenticateToken, async (req, res) => {
       { value: 'default', label: 'Default Page' },
       { value: 'contact', label: 'Contact Page' },
       { value: 'full-width', label: 'Full Width' },
-      { value: 'landing', label: 'Landing Page' }
+      { value: 'landing', label: 'Landing Page' },
+      { value: 'home', label: 'Home Page' }
     ];
     
     const layouts = [

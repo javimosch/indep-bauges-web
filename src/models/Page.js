@@ -27,7 +27,7 @@ const PageSchema = new mongoose.Schema({
   template: {
     type: String,
     default: 'default',
-    enum: ['default', 'full-width', 'landing', 'contact']
+    enum: ['default', 'full-width', 'landing', 'contact', 'home']
   },
   layout: {
     type: String,
@@ -66,6 +66,17 @@ const PageSchema = new mongoose.Schema({
     },
     customCSS: String,
     customJS: String
+  },
+  // Support for section-based content (for home page)
+  sections: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+  // Migration information
+  migrationInfo: {
+    migratedAt: Date,
+    originalSections: [String],
+    migrationVersion: String
   }
 }, {
   timestamps: true

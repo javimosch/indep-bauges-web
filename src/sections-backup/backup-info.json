@@ -1,0 +1,20 @@
+{
+  "createdAt": "2025-06-26T23:17:25.382Z",
+  "originalPath": "/home/jarancibia/git/repos/_projects/indep-bauges/indep-bauges/src/sections",
+  "files": [
+    "about.html",
+    "contact.html",
+    "events.html",
+    "footer.html",
+    "head.html",
+    "hero.html",
+    "index.html",
+    "join.html",
+    "members.html",
+    "navigation.html",
+    "newsletter.html",
+    "services.html",
+    "testimonials.html"
+  ],
+  "purpose": "Backup before migration to database-driven home page"
+}
