@@ -25,7 +25,7 @@ class AdminPageManager {
     try {
       const response = await fetch('/api/admin/pages/meta/templates', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
         }
       });
       
@@ -41,14 +41,54 @@ class AdminPageManager {
   
   initPageInterface() {
     // Add page management button to admin interface
-    if (window.adminHelpers && window.adminHelpers.isAdminMode()) {
+    // Check if admin mode is active by looking for admin token
+    const adminToken = localStorage.getItem('admin_auth_token');
+    if (adminToken) {
       this.addPageManagementButton();
     }
+    
+    // Also listen for admin authentication events
+    document.addEventListener('adminAuthenticated', () => {
+      console.log('Admin authenticated event received');
+      this.addPageManagementButton();
+    });
+    
+    // Check periodically for admin mode (fallback)
+    const checkAdminMode = () => {
+      const token = localStorage.getItem('admin_auth_token');
+      if (token && !document.getElementById('admin-pages-btn')) {
+        this.addPageManagementButton();
+      }
+    };
+    
+    // Check every 2 seconds for the first 30 seconds
+    let attempts = 0;
+    const interval = setInterval(() => {
+      checkAdminMode();
+      attempts++;
+      if (attempts >= 15 || document.getElementById('admin-pages-btn')) {
+        clearInterval(interval);
+      }
+    }, 2000);
   }
   
   addPageManagementButton() {
     // Check if button already exists
     if (document.getElementById('admin-pages-btn')) return;
+    
+    // Look for existing admin bar first
+    let adminBar = document.querySelector('.admin-bar');
+    if (adminBar) {
+      // Add to existing admin bar
+      const pageBtn = document.createElement('button');
+      pageBtn.id = 'admin-pages-btn';
+      pageBtn.className = 'btn btn-secondary btn-sm ml-2';
+      pageBtn.innerHTML = '<i class="fas fa-file-alt mr-1"></i> Pages';
+      pageBtn.onclick = () => this.showPageManager();
+      adminBar.appendChild(pageBtn);
+      console.log('Added Pages button to existing admin bar');
+      return;
+    }
     
     // Find admin toolbar or create one
     let toolbar = document.querySelector('.admin-toolbar');
@@ -66,6 +106,7 @@ class AdminPageManager {
     pageBtn.onclick = () => this.showPageManager();
     
     toolbar.appendChild(pageBtn);
+    console.log('Added Pages button to toolbar');
   }
   
   showPageManager() {
@@ -155,7 +196,7 @@ class AdminPageManager {
       
       const response = await fetch(`/api/admin/pages?${params}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
         }
       });
       
@@ -240,7 +281,7 @@ class AdminPageManager {
     try {
       const response = await fetch(`/api/admin/pages/${pageId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
         }
       });
       
@@ -402,7 +443,7 @@ class AdminPageManager {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
         },
         body: JSON.stringify(pageData)
       });
@@ -431,7 +472,7 @@ class AdminPageManager {
       const response = await fetch(`/api/admin/pages/${pageId}/duplicate`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
         }
       });
       
@@ -456,7 +497,7 @@ class AdminPageManager {
       const response = await fetch(`/api/admin/pages/${pageId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
         }
       });
       

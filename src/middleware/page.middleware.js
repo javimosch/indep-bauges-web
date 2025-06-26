@@ -14,7 +14,8 @@ async function pageMiddleware(req, res, next) {
   if (req.path.startsWith('/api/') || 
       req.path.startsWith('/scripts/') || 
       req.path.includes('.') ||
-      req.path.startsWith('/admin/')) {
+      req.path.startsWith('/admin/') ||
+      req.path.endsWith('.html')) {
     return next();
   }
   

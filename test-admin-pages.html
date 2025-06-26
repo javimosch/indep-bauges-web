@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin Pages</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.2/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body class="bg-base-200 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">Admin Pages Test</h1>
+        
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Page Management Test</h2>
+                <p>This page allows you to test the admin page management system directly.</p>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Admin Token (from localStorage)</span>
+                    </label>
+                    <input type="text" id="admin-token" class="input input-bordered" readonly>
+                </div>
+                
+                <div class="card-actions justify-end">
+                    <button class="btn btn-primary" onclick="openPageManager()">
+                        <i class="fas fa-file-alt mr-2"></i>Open Page Manager
+                    </button>
+                    <button class="btn btn-secondary" onclick="checkAdminStatus()">
+                        <i class="fas fa-check mr-2"></i>Check Admin Status
+                    </button>
+                </div>
+                
+                <div id="status" class="mt-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/scripts/admin-pages.js"></script>
+    <script>
+        // Check admin status
+        function checkAdminStatus() {
+            const token = localStorage.getItem('admin_auth_token');
+            const tokenInput = document.getElementById('admin-token');
+            const status = document.getElementById('status');
+            
+            tokenInput.value = token ? 'Token found' : 'No token';
+            
+            if (token) {
+                status.innerHTML = '<div class="alert alert-success"><i class="fas fa-check mr-2"></i>Admin token found! You should be able to use page management.</div>';
+            } else {
+                status.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation mr-2"></i>No admin token found. Please login as admin first on the main site.</div>';
+            }
+        }
+        
+        // Open page manager directly
+        function openPageManager() {
+            if (window.adminPageManager) {
+                window.adminPageManager.showPageManager();
+            } else {
+                document.getElementById('status').innerHTML = '<div class="alert alert-error"><i class="fas fa-times mr-2"></i>Page manager not loaded. Check console for errors.</div>';
+            }
+        }
+        
+        // Check status on load
+        checkAdminStatus();
+    </script>
+</body>
+</html>
