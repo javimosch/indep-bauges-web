@@ -28,10 +28,22 @@ async function pageMiddleware(req, res, next) {
     // Extract slug from URL (remove leading slash)
     const slug = req.path.slice(1);
     
+    console.log(`[Page Middleware] Looking for page with slug: "${slug}"`);
+    
     // Look up page in database
     const page = await Page.findBySlug(slug);
     
+    console.log(`[Page Middleware] Page found:`, !!page);
+    if (page) {
+      console.log(`[Page Middleware] Page details:`, {
+        title: page.title,
+        status: page.status,
+        template: page.template
+      });
+    }
+    
     if (!page) {
+      console.log(`[Page Middleware] No published page found for slug: "${slug}"`);
       // No page found, continue to next middleware (plugins, static files, 404)
       return next();
     }

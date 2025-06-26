@@ -10,22 +10,34 @@ class AdminPageManager {
     this.init();
   }
   
+  // Helper to get admin token from localStorage
+  getAdminToken() {
+    try {
+      const authDataString = localStorage.getItem('admin_auth_token');
+      if (!authDataString) return '';
+      
+      const authData = JSON.parse(authDataString);
+      // Handle nested structure: {data: {token: "..."}, expiry: ...}
+      return authData.data?.token || authData.token || '';
+    } catch (error) {
+      console.error('Error parsing admin token:', error);
+      return '';
+    }
+  }
+  
   async init() {
     // Load templates and layouts
     await this.loadTemplatesAndLayouts();
     
     // Initialize page management interface
     this.initPageInterface();
-    
-    // Load pages list
-    this.loadPages();
   }
   
   async loadTemplatesAndLayouts() {
     try {
       const response = await fetch('/api/admin/pages/meta/templates', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
+          'Authorization': `Bearer ${this.getAdminToken()}`
         }
       });
       
@@ -33,6 +45,10 @@ class AdminPageManager {
         const data = await response.json();
         this.templates = data.templates;
         this.layouts = data.layouts;
+        console.log('Loaded templates:', this.templates);
+        console.log('Loaded layouts:', this.layouts);
+      } else {
+        console.error('Failed to load templates:', response.status);
       }
     } catch (error) {
       console.error('Error loading templates:', error);
@@ -42,7 +58,7 @@ class AdminPageManager {
   initPageInterface() {
     // Add page management button to admin interface
     // Check if admin mode is active by looking for admin token
-    const adminToken = localStorage.getItem('admin_auth_token');
+    const adminToken = this.getAdminToken();
     if (adminToken) {
       this.addPageManagementButton();
     }
@@ -53,9 +69,23 @@ class AdminPageManager {
       this.addPageManagementButton();
     });
     
+    // Listen for admin bar creation
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE && node.id === 'admin-bar') {
+            console.log('Admin bar detected, adding Pages button...');
+            setTimeout(() => this.addPageManagementButton(), 100);
+          }
+        });
+      });
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+    
     // Check periodically for admin mode (fallback)
     const checkAdminMode = () => {
-      const token = localStorage.getItem('admin_auth_token');
+      const token = this.getAdminToken();
       if (token && !document.getElementById('admin-pages-btn')) {
         this.addPageManagementButton();
       }
@@ -76,26 +106,56 @@ class AdminPageManager {
     // Check if button already exists
     if (document.getElementById('admin-pages-btn')) return;
     
-    // Look for existing admin bar first
-    let adminBar = document.querySelector('.admin-bar');
+    console.log('Attempting to add Pages button...');
+    
+    // Look for existing admin bar first (ID-based)
+    let adminBar = document.getElementById('admin-bar');
     if (adminBar) {
-      // Add to existing admin bar
-      const pageBtn = document.createElement('button');
-      pageBtn.id = 'admin-pages-btn';
-      pageBtn.className = 'btn btn-secondary btn-sm ml-2';
-      pageBtn.innerHTML = '<i class="fas fa-file-alt mr-1"></i> Pages';
-      pageBtn.onclick = () => this.showPageManager();
-      adminBar.appendChild(pageBtn);
-      console.log('Added Pages button to existing admin bar');
-      return;
+      // Find the right controls section (right side)
+      let rightControls = adminBar.querySelector('.flex.items-center.gap-4:last-child');
+      if (rightControls) {
+        // Add to existing admin bar right controls
+        const pageBtn = document.createElement('button');
+        pageBtn.id = 'admin-pages-btn';
+        pageBtn.className = 'px-3 py-1 rounded bg-green-600 hover:bg-green-700 transition-colors text-white';
+        pageBtn.innerHTML = '<i class="fas fa-file-alt mr-1"></i> Pages';
+        pageBtn.onclick = () => this.showPageManager();
+        
+        // Insert before the logout button
+        const logoutBtn = rightControls.querySelector('#admin-logout');
+        if (logoutBtn) {
+          rightControls.insertBefore(pageBtn, logoutBtn);
+        } else {
+          rightControls.appendChild(pageBtn);
+        }
+        
+        console.log('Added Pages button to existing admin bar');
+        return;
+      }
     }
     
-    // Find admin toolbar or create one
+    // Look for admin toolbar
     let toolbar = document.querySelector('.admin-toolbar');
     if (!toolbar) {
-      toolbar = document.createElement('div');
-      toolbar.className = 'admin-toolbar fixed top-4 right-4 z-50 flex gap-2';
-      document.body.appendChild(toolbar);
+      // Look for any element with "admin" in class name
+      const adminElements = document.querySelectorAll('[class*="admin"]');
+      console.log('Found admin elements:', adminElements);
+      
+      // Try to find the admin interface container
+      for (let element of adminElements) {
+        if (element.style.position === 'fixed' || element.classList.contains('fixed')) {
+          toolbar = element;
+          break;
+        }
+      }
+      
+      if (!toolbar) {
+        // Create our own toolbar
+        toolbar = document.createElement('div');
+        toolbar.className = 'admin-toolbar fixed top-4 right-4 z-50 flex gap-2';
+        document.body.appendChild(toolbar);
+        console.log('Created new admin toolbar');
+      }
     }
     
     // Add page management button
@@ -127,10 +187,10 @@ class AdminPageManager {
     modal.className = 'modal';
     
     modal.innerHTML = `
-      <div class="modal-box w-11/12 max-w-6xl">
+      <div class="modal-box w-11/12 max-w-7xl max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
           <h3 class="font-bold text-lg">${title}</h3>
-          <button class="btn btn-sm btn-circle btn-ghost" onclick="this.closest('dialog').close()">✕</button>
+          <button class="btn btn-sm btn-circle btn-ghost" onclick="this.closest('dialog').close()">×</button>
         </div>
         <div class="modal-content">
           ${content}
@@ -196,7 +256,7 @@ class AdminPageManager {
       
       const response = await fetch(`/api/admin/pages?${params}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
+          'Authorization': `Bearer ${this.getAdminToken()}`
         }
       });
       
@@ -281,7 +341,7 @@ class AdminPageManager {
     try {
       const response = await fetch(`/api/admin/pages/${pageId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
+          'Authorization': `Bearer ${this.getAdminToken()}`
         }
       });
       
@@ -315,6 +375,20 @@ class AdminPageManager {
   createPageEditorContent() {
     const isEdit = !!this.currentPage;
     
+    // Ensure we have templates and layouts
+    const templates = this.templates.length > 0 ? this.templates : [
+      { value: 'default', label: 'Default Page' },
+      { value: 'contact', label: 'Contact Page' },
+      { value: 'landing', label: 'Landing Page' },
+      { value: 'full-width', label: 'Full Width' }
+    ];
+    
+    const layouts = this.layouts.length > 0 ? this.layouts : [
+      { value: 'default', label: 'Default Layout' },
+      { value: 'full-width', label: 'Full Width Layout' },
+      { value: 'admin', label: 'Admin Layout' }
+    ];
+    
     return `
       <form id="page-form" onsubmit="adminPageManager.savePage(event)">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -342,7 +416,7 @@ class AdminPageManager {
               <span class="label-text">Template</span>
             </label>
             <select id="page-template" name="template" class="select select-bordered">
-              ${this.templates.map(t => `<option value="${t.value}">${t.label}</option>`).join('')}
+              ${templates.map(t => `<option value="${t.value}">${t.label}</option>`).join('')}
             </select>
           </div>
           
@@ -351,7 +425,7 @@ class AdminPageManager {
               <span class="label-text">Layout</span>
             </label>
             <select id="page-layout" name="layout" class="select select-bordered">
-              ${this.layouts.map(l => `<option value="${l.value}">${l.label}</option>`).join('')}
+              ${layouts.map(l => `<option value="${l.value}">${l.label}</option>`).join('')}
             </select>
           </div>
           
@@ -381,7 +455,7 @@ class AdminPageManager {
             <span class="label-text">Content *</span>
           </label>
           <textarea id="page-content" name="content" required 
-                    class="textarea textarea-bordered" rows="10"
+                    class="textarea textarea-bordered" rows="15"
                     placeholder="Page content (HTML allowed)"></textarea>
         </div>
         
@@ -443,7 +517,7 @@ class AdminPageManager {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
+          'Authorization': `Bearer ${this.getAdminToken()}`
         },
         body: JSON.stringify(pageData)
       });
@@ -472,7 +546,7 @@ class AdminPageManager {
       const response = await fetch(`/api/admin/pages/${pageId}/duplicate`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
+          'Authorization': `Bearer ${this.getAdminToken()}`
         }
       });
       
@@ -497,7 +571,7 @@ class AdminPageManager {
       const response = await fetch(`/api/admin/pages/${pageId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('admin_auth_token')}`
+          'Authorization': `Bearer ${this.getAdminToken()}`
         }
       });
       
@@ -550,22 +624,29 @@ class AdminPageManager {
 
 // Auto-generate slug from title
 document.addEventListener('DOMContentLoaded', function() {
-  const titleInput = document.getElementById('page-title');
-  const slugInput = document.getElementById('page-slug');
-  
-  if (titleInput && slugInput && !slugInput.readOnly) {
-    titleInput.addEventListener('input', function() {
-      const slug = this.value
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-      
-      slugInput.value = slug;
-    });
-  }
+  // Wait a bit for the form to be created
+  setTimeout(() => {
+    const titleInput = document.getElementById('page-title');
+    const slugInput = document.getElementById('page-slug');
+    
+    if (titleInput && slugInput && !slugInput.readOnly) {
+      titleInput.addEventListener('input', function() {
+        const slug = this.value
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+        
+        slugInput.value = slug;
+      });
+    }
+  }, 1000);
 });
 
 // Initialize admin page manager
+console.log('Initializing AdminPageManager...');
 const adminPageManager = new AdminPageManager();
+
+// Make it globally available for debugging
+window.adminPageManager = adminPageManager;
