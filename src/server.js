@@ -17,6 +17,7 @@ const { initializeMongo } = require('./db/sync');
 
 // Import middleware
 const { injectScriptsAndStyles } = require('./middleware/injection.middleware');
+const { pageMiddleware } = require('./middleware/page.middleware');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -24,6 +25,7 @@ const contentRoutes = require('./routes/content');
 const auditRoutes = require('./routes/audit');
 const syncRoutes = require('./routes/sync');
 const injectionRoutes = require('./routes/injection');
+const adminPagesRoutes = require('./routes/admin/pages');
 
 // Create Express app
 const app = express();
@@ -62,9 +64,13 @@ app.use('/api/save-content', contentRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/sync-from-mongo', syncRoutes);
 app.use('/api/injections', injectionRoutes);
+app.use('/api/admin/pages', adminPagesRoutes);
 
 // Inject scripts and styles into HTML responses
 app.use(injectScriptsAndStyles);
+
+// Database-driven page routing (before static files)
+app.use(pageMiddleware);
 
 // Serve static files from the dist directory
 app.use(express.static(config.paths.dist));

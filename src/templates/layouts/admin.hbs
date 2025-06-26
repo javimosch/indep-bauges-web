@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="bauges" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{title}} - Admin - {{site.name}}</title>
+  <meta name="description" content="{{description}}">
+  <meta name="robots" content="noindex, nofollow">
+  
+  {{> head-styles}}
+  
+  {{#if customCSS}}
+  <style>{{{customCSS}}}</style>
+  {{/if}}
+</head>
+<body class="bg-base-200 text-bauges-dark">
+  <!-- Admin Header -->
+  <header class="bg-bauges-primary text-white shadow-lg">
+    <div class="container mx-auto px-4 py-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-4">
+          <a href="/" class="flex items-center gap-2">
+            <div class="h-8 w-8 rounded-full bg-white flex items-center justify-center">
+              <span class="text-bauges-primary font-bold text-sm">IB</span>
+            </div>
+            <span class="font-display font-bold">Admin</span>
+          </a>
+          <span class="text-bauges-accent">{{title}}</span>
+        </div>
+        
+        <div class="flex items-center gap-2">
+          <a href="/" class="btn btn-sm btn-ghost text-white">
+            <i class="fas fa-home mr-1"></i>Site
+          </a>
+          <button class="btn btn-sm btn-ghost text-white" onclick="window.adminHelpers?.logout()">
+            <i class="fas fa-sign-out-alt mr-1"></i>Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <main class="min-h-screen py-8">
+    {{{body}}}
+  </main>
+  
+  {{> admin-scripts}}
+  
+  {{#if customJS}}
+  <script>{{{customJS}}}</script>
+  {{/if}}
+</body>
+</html>

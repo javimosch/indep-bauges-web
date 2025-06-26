@@ -12,6 +12,7 @@
     "sync-to-mongo": "node src/scripts/sync-mongo.js --to-mongo",
     "add-data-ids": "node src/scripts/add-data-ids.js",
     "add-data-ids:dry": "node src/scripts/add-data-ids.js --dry-run",
+    "create-test-pages": "node test-pages.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -24,6 +25,7 @@
   "dependencies": {
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
+    "handlebars": "^4.7.8",
     "jsdom": "^24.1.3",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.14.0",
