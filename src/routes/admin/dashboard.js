@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../../middleware/auth.middleware');
+const { requireAdminAuth, injectAdminToken } = require('../../middleware/admin-auth.middleware');
 const Page = require('../../models/Page');
 
 // Admin dashboard home
